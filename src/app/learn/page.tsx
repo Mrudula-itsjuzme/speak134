@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
@@ -10,6 +10,7 @@ import {
   LogOut, User
 } from 'lucide-react';
 import { useConversation } from '@11labs/react';
+import { useVoiceMemory } from '@/hooks/useVoiceMemory';
 
 interface Message {
   id: string;
@@ -109,9 +110,30 @@ export default function LearnPage() {
     }
   }, [conversation]);
 
+  const { endSession: saveSessionToMemory } = useVoiceMemory();
+
+  // Send initial context when connected
+  useEffect(() => {
+    if (isConnected) {
+      // Try to send context to the agent
+      // Note: This depends on the agent being configured to accept text input or instructions
+      const contextMessage = `The user is learning ${lang}. Act as a ${personality} tutor.`;
+      console.log('Sending context:', contextMessage);
+      
+      // Attempt to send hidden context message if supported
+      // @ts-ignore - checking for method existence
+      if (typeof conversation.sendMessage === 'function') {
+        // @ts-ignore
+        conversation.sendMessage(contextMessage);
+      }
+    }
+  }, [isConnected, lang, personality, conversation]);
+
   const endConversation = useCallback(async () => {
     await conversation.endSession();
-  }, [conversation]);
+    // Save session to memory
+    await saveSessionToMemory(messages, lang, personality);
+  }, [conversation, messages, lang, personality, saveSessionToMemory]);
 
   const toggleMute = useCallback(() => {
     if (isMuted) {
@@ -122,27 +144,25 @@ export default function LearnPage() {
     setIsMuted(!isMuted);
   }, [conversation, isMuted]);
 
-  const handleSendMessage = () => {
+  const handleSendMessage = async () => {
     if (!inputValue.trim()) return;
     
-    setMessages(prev => [...prev, {
+    const newMessage: Message = {
       id: Date.now().toString(),
       type: 'user',
       content: inputValue,
       timestamp: new Date()
-    }]);
+    };
+
+    setMessages(prev => [...prev, newMessage]);
     setInputValue('');
     
-    // Simulate AI response for demo
-    setTimeout(() => {
-      setMessages(prev => [...prev, {
-        id: (Date.now() + 1).toString(),
-        type: 'ai',
-        content: "Great start! Try saying 'Quisiera un capuchino, por favor.'",
-        correction: "Quisiera un capuchino, por favor.",
-        timestamp: new Date()
-      }]);
-    }, 1500);
+    // Send text to ElevenLabs if supported
+    // @ts-ignore
+    if (isConnected && typeof conversation.sendMessage === 'function') {
+      // @ts-ignore
+      await conversation.sendMessage(inputValue);
+    }
   };
 
   const completedCount = roadmapItems.filter(item => item.status === 'completed').length;
