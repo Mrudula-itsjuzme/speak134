@@ -10,6 +10,7 @@ export async function POST(request: Request) {
     console.log('API Key present:', !!process.env.GOOGLE_API_KEY);
     const body = await request.json();
     language = body.language;
+    const nativeLanguage = body.nativeLanguage || 'English';
     personality = body.personality;
     topic = body.topic;
     level = body.level;
@@ -22,7 +23,8 @@ export async function POST(request: Request) {
     
     const prompt = `
       Create a detailed system prompt for an AI language tutor with the following traits:
-      - Language: ${language}
+      - Target Language: ${language}
+      - User's Native Language: ${nativeLanguage}
       - Personality: ${personality}
       - Current Topic: ${topic}
       - User Level: ${level}
@@ -31,7 +33,7 @@ export async function POST(request: Request) {
       It must instruct the AI to:
       1. Behave consistently as the specified personality.
       2. Speak primarily in ${language}, adapting complexity to ${level}.
-      3. Provide brief English explanations only when necessary or asked.
+      3. Provide brief translations or explanations in ${nativeLanguage} ONLY when necessary or asked.
       4. Correct mistakes gently and encouragingly.
       5. Keep responses concise (1-3 sentences) to maintain conversational flow.
       6. Engage the user with relevant questions about the topic.

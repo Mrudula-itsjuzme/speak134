@@ -24,7 +24,7 @@ export default function LandingPage() {
             <Link href="#testimonials" className="text-dark-600 hover:text-dark-900 transition-colors">Stories</Link>
           </div>
           
-          <Link href="/languages" className="btn-primary flex items-center gap-2">
+          <Link href="/native-language" className="btn-primary flex items-center gap-2">
             Get Started <ArrowRight className="w-4 h-4" />
           </Link>
         </div>
@@ -46,7 +46,7 @@ export default function LandingPage() {
               Talk to AI tutors who adapt to your voice, remember your progress, and evolve with every conversation. No memorization. Just real conversations.
             </p>
             <div className="flex flex-wrap gap-4 mb-8">
-              <Link href="/languages" className="btn-primary flex items-center gap-2 text-lg px-8 py-4">
+              <Link href="/native-language" className="btn-primary flex items-center gap-2 text-lg px-8 py-4">
                 Try Free <ArrowRight className="w-5 h-5" />
               </Link>
               <button className="btn-secondary flex items-center gap-2 text-lg px-8 py-4">
@@ -291,7 +291,7 @@ export default function LandingPage() {
             <p className="text-xl text-white/80 mb-8 max-w-2xl mx-auto">
               Join thousands of learners who are finally speaking their target language
             </p>
-            <Link href="/languages" className="inline-flex items-center gap-2 bg-white text-primary-600 font-bold px-8 py-4 rounded-xl hover:bg-white/90 transition-colors">
+            <Link href="/native-language" className="inline-flex items-center gap-2 bg-white text-primary-600 font-bold px-8 py-4 rounded-xl hover:bg-white/90 transition-colors">
               Start Your Journey <ArrowRight className="w-5 h-5" />
             </Link>
           </motion.div>

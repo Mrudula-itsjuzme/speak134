@@ -58,17 +58,65 @@ function LearnPageContent() {
 
   const [agentConfig, setAgentConfig] = useState<{ systemPrompt: string; firstMessage: string } | null>(null);
   const [isLoadingPrompt, setIsLoadingPrompt] = useState(false);
+  const [nativeLanguage, setNativeLanguage] = useState('English');
+  const [uiTranslations, setUiTranslations] = useState<Record<string, string>>({
+    'practice': 'Conversation Practice',
+    'topic': 'Topic',
+    'online': 'AI ONLINE',
+    'roadmap': 'Your Roadmap',
+    'complete': 'Complete',
+    'completed': 'COMPLETED',
+    'in_progress': 'IN PROGRESS',
+    'locked': 'LOCKED',
+    'listen': 'Listen',
+    'translate': 'Translate',
+    'connected': 'Connected',
+    'join': 'Join Call',
+    'leave': 'Leave',
+    'placeholder': 'Talk to MisSpoke !!'
+  });
+
+  const t = (key: string) => {
+    return uiTranslations[key] || key;
+  };
+
+  // Fetch UI translations
+  useEffect(() => {
+    const fetchTranslations = async () => {
+      const nativeLang = localStorage.getItem('nativeLanguage') || 'English';
+      setNativeLanguage(nativeLang);
+      
+      if (nativeLang === 'English') return;
+
+      try {
+        const response = await fetch('/api/translate-ui', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ targetLanguage: nativeLang })
+        });
+        const data = await response.json();
+        setUiTranslations(data);
+      } catch (error) {
+        console.error('Failed to fetch translations:', error);
+      }
+    };
+
+    fetchTranslations();
+  }, []);
 
   // Fetch dynamic prompt from Gemini
   useEffect(() => {
     const fetchPrompt = async () => {
       setIsLoadingPrompt(true);
+      const nativeLang = localStorage.getItem('nativeLanguage') || 'English';
+      // setNativeLanguage(nativeLang); // Already set in fetchTranslations
       try {
         const response = await fetch('/api/prompt', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             language: lang,
+            nativeLanguage: nativeLang,
             personality: personality,
             topic: currentCurriculum.topic,
             level: currentCurriculum.level
@@ -79,7 +127,7 @@ function LearnPageContent() {
         
         // Update the initial message
         setMessages([{
-          id: '1',
+          id: crypto.randomUUID(),
           type: 'ai',
           content: data.firstMessage,
           timestamp: new Date()
@@ -108,7 +156,7 @@ function LearnPageContent() {
       console.log('Message:', message);
       if (message.message) {
         setMessages(prev => [...prev, {
-          id: Date.now().toString(),
+          id: crypto.randomUUID(),
           type: message.source === 'user' ? 'user' : 'ai',
           content: message.message as string,
           timestamp: new Date()
@@ -133,7 +181,7 @@ function LearnPageContent() {
       // @ts-ignore
       if (typeof conversation.sendMessage === 'function') {
         // @ts-ignore
-        conversation.sendMessage(contextMessage);
+        // conversation.sendMessage(contextMessage);
       }
     }
   }, [isConnected, agentConfig, conversation]);
@@ -152,14 +200,6 @@ function LearnPageContent() {
         agentId: agentId,
         // @ts-ignore
         connectionType: 'websocket',
-        overrides: {
-          agent: {
-            prompt: {
-              prompt: agentConfig?.systemPrompt || `You are a ${lang} tutor.`
-            },
-            firstMessage: agentConfig?.firstMessage || "Hello!"
-          }
-        }
       });
     } catch (error) {
       console.error('Failed to start conversation:', error);
@@ -185,7 +225,7 @@ function LearnPageContent() {
     if (!inputValue.trim()) return;
     
     const newMessage: Message = {
-      id: Date.now().toString(),
+      id: crypto.randomUUID(),
       type: 'user',
       content: inputValue,
       timestamp: new Date()
@@ -242,12 +282,12 @@ function LearnPageContent() {
           {/* Topic Header */}
           <div className="px-6 py-4 border-b border-white/10 flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-bold text-white">Conversation Practice</h1>
-              <p className="text-gray-400">Topic: {currentCurriculum.topic}</p>
+              <h1 className="text-2xl font-bold text-white">{t('practice')}</h1>
+              <p className="text-gray-400">{t('topic')}: {currentCurriculum.topic}</p>
             </div>
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-              <span className="text-green-400 font-medium">AI ONLINE</span>
+              <span className="text-green-400 font-medium">{t('online')}</span>
             </div>
           </div>
 
@@ -287,11 +327,11 @@ function LearnPageContent() {
                       <div className="flex gap-2 mt-2">
                         <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-dark-800 text-gray-400 hover:text-white text-sm transition-colors">
                           <Volume2 className="w-4 h-4" />
-                          Listen
+                          {t('listen')}
                         </button>
                         <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-dark-800 text-gray-400 hover:text-white text-sm transition-colors">
                           <Languages className="w-4 h-4" />
-                          Translate
+                          {t('translate')}
                         </button>
                       </div>
                     )}
@@ -316,7 +356,7 @@ function LearnPageContent() {
                   value={inputValue}
                   onChange={(e) => setInputValue(e.target.value)}
                   onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-                  placeholder="Talk to MisSpoke !!"
+                  placeholder={t('placeholder')}
                   className="w-full bg-dark-800 text-white rounded-xl px-4 py-3 pr-12 focus:outline-none focus:ring-2 focus:ring-primary-500"
                 />
                 <button 
@@ -338,7 +378,7 @@ function LearnPageContent() {
                 }`}
               >
                 <Phone className="w-5 h-5" />
-                {isConnected ? 'Connected' : 'Join Call'}
+                {isConnected ? t('connected') : t('join')}
               </button>
               
               <button
@@ -351,7 +391,7 @@ function LearnPageContent() {
                 }`}
               >
                 <PhoneOff className="w-5 h-5" />
-                Leave
+                {t('leave')}
               </button>
             </div>
           </div>
@@ -360,7 +400,7 @@ function LearnPageContent() {
         {/* Roadmap Sidebar */}
         <div className="w-80 border-l border-white/10 p-6 hidden lg:block">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-lg font-bold text-white">Your Roadmap</h2>
+            <h2 className="text-lg font-bold text-white">{t('roadmap')}</h2>
             <button className="text-gray-400 hover:text-white">
               <MoreVertical className="w-5 h-5" />
             </button>
@@ -369,7 +409,7 @@ function LearnPageContent() {
           <div className="mb-6">
             <div className="flex justify-between text-sm mb-2">
               <span className="text-gray-400">{currentCurriculum.level}</span>
-              <span className="text-green-400 font-medium">{progressPercentage}% Complete</span>
+              <span className="text-green-400 font-medium">{progressPercentage}% {t('complete')}</span>
             </div>
             <div className="progress-bar">
               <div 
@@ -419,8 +459,8 @@ function LearnPageContent() {
                       ? 'text-primary-400'
                       : 'text-gray-500'
                   }`}>
-                    {item.status === 'completed' ? 'COMPLETED' : 
-                     item.status === 'in-progress' ? 'IN PROGRESS' : 'LOCKED'}
+                    {item.status === 'completed' ? t('completed') : 
+                     item.status === 'in-progress' ? t('in_progress') : t('locked')}
                   </p>
                 </div>
               </div>
