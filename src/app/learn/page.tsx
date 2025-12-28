@@ -1,6 +1,7 @@
+
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, Suspense } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
@@ -20,39 +21,78 @@ interface Message {
   timestamp: Date;
 }
 
-interface RoadmapItem {
-  id: string;
-  title: string;
-  status: 'completed' | 'in-progress' | 'locked';
-}
+import { curriculums } from '@/lib/curriculum';
 
-const roadmapItems: RoadmapItem[] = [
-  { id: 'greetings', title: 'Greetings', status: 'completed' },
-  { id: 'introductions', title: 'Introductions', status: 'completed' },
-  { id: 'basic-phrases', title: 'Basic Phrases', status: 'in-progress' },
-  { id: 'numbers', title: 'Numbers', status: 'locked' },
-  { id: 'colors-objects', title: 'Colors & Objects', status: 'locked' },
-  { id: 'food-drinks', title: 'Food & Drinks', status: 'locked' },
-  { id: 'daily-routine', title: 'Daily Routine', status: 'locked' },
-  { id: 'travel', title: 'Travel', status: 'locked' },
-];
-
-export default function LearnPage() {
+function LearnPageContent() {
   const searchParams = useSearchParams();
   const lang = searchParams.get('lang') || 'spanish';
   const personality = searchParams.get('personality') || 'cheerful';
+  
+  const currentCurriculum = curriculums[lang.toLowerCase()] || curriculums.default;
   
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
       type: 'ai',
-      content: "Hola! ¿Cómo estás hoy? Let's practice ordering coffee.",
+      content: currentCurriculum.initialMessage,
       timestamp: new Date('2024-01-01T12:00:00')
     }
   ]);
+
+  // Update messages when language changes
+  useEffect(() => {
+    const newCurriculum = curriculums[lang.toLowerCase()] || curriculums.default;
+    setMessages([
+      {
+        id: '1',
+        type: 'ai',
+        content: newCurriculum.initialMessage,
+        timestamp: new Date('2024-01-01T12:00:00')
+      }
+    ]);
+  }, [lang]);
+
   const [inputValue, setInputValue] = useState('');
   const [isConnected, setIsConnected] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
+
+  const [agentConfig, setAgentConfig] = useState<{ systemPrompt: string; firstMessage: string } | null>(null);
+  const [isLoadingPrompt, setIsLoadingPrompt] = useState(false);
+
+  // Fetch dynamic prompt from Gemini
+  useEffect(() => {
+    const fetchPrompt = async () => {
+      setIsLoadingPrompt(true);
+      try {
+        const response = await fetch('/api/prompt', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            language: lang,
+            personality: personality,
+            topic: currentCurriculum.topic,
+            level: currentCurriculum.level
+          })
+        });
+        const data = await response.json();
+        setAgentConfig(data);
+        
+        // Update the initial message
+        setMessages([{
+          id: '1',
+          type: 'ai',
+          content: data.firstMessage,
+          timestamp: new Date()
+        }]);
+      } catch (error) {
+        console.error('Failed to fetch prompt:', error);
+      } finally {
+        setIsLoadingPrompt(false);
+      }
+    };
+
+    fetchPrompt();
+  }, [lang, personality, currentCurriculum.topic, currentCurriculum.level]);
 
   // ElevenLabs Conversation Hook
   const conversation = useConversation({
@@ -80,54 +120,51 @@ export default function LearnPage() {
     }
   });
 
-  const startConversation = useCallback(async () => {
-    try {
-      const agentId = process.env.NEXT_PUBLIC_ELEVENLABS_AGENT_ID;
-      console.log('Starting conversation with Agent ID:', agentId ? `${agentId.slice(0, 5)}...` : 'MISSING');
-      
-      if (!agentId) {
-        throw new Error('NEXT_PUBLIC_ELEVENLABS_AGENT_ID is missing in environment variables');
-      }
-
-      // Request microphone permission
-      await navigator.mediaDevices.getUserMedia({ audio: true });
-      
-      // Start the conversation with the agent
-      await conversation.startSession({
-        agentId: agentId,
-        // @ts-ignore - connectionType might be an enum, using string for now
-        connectionType: 'websocket', 
-      });
-    } catch (error) {
-      console.error('Failed to start conversation:', error);
-      // Log more details if available
-      if (error instanceof Error) {
-        console.error('Error message:', error.message);
-        console.error('Error stack:', error.stack);
-      } else {
-        console.error('Unknown error object:', JSON.stringify(error, null, 2));
-      }
-    }
-  }, [conversation]);
-
   const { endSession: saveSessionToMemory } = useVoiceMemory();
 
   // Send initial context when connected
   useEffect(() => {
-    if (isConnected) {
+    if (isConnected && agentConfig) {
       // Try to send context to the agent
-      // Note: This depends on the agent being configured to accept text input or instructions
-      const contextMessage = `The user is learning ${lang}. Act as a ${personality} tutor.`;
+      const contextMessage = `System Update: ${agentConfig.systemPrompt}`;
       console.log('Sending context:', contextMessage);
       
       // Attempt to send hidden context message if supported
-      // @ts-ignore - checking for method existence
+      // @ts-ignore
       if (typeof conversation.sendMessage === 'function') {
         // @ts-ignore
         conversation.sendMessage(contextMessage);
       }
     }
-  }, [isConnected, lang, personality, conversation]);
+  }, [isConnected, agentConfig, conversation]);
+
+  const startConversation = useCallback(async () => {
+    try {
+      const agentId = process.env.NEXT_PUBLIC_ELEVENLABS_AGENT_ID;
+      
+      if (!agentId) {
+        throw new Error('NEXT_PUBLIC_ELEVENLABS_AGENT_ID is missing');
+      }
+
+      await navigator.mediaDevices.getUserMedia({ audio: true });
+      
+      await conversation.startSession({
+        agentId: agentId,
+        // @ts-ignore
+        connectionType: 'websocket',
+        overrides: {
+          agent: {
+            prompt: {
+              prompt: agentConfig?.systemPrompt || `You are a ${lang} tutor.`
+            },
+            firstMessage: agentConfig?.firstMessage || "Hello!"
+          }
+        }
+      });
+    } catch (error) {
+      console.error('Failed to start conversation:', error);
+    }
+  }, [conversation, agentConfig, lang]);
 
   const endConversation = useCallback(async () => {
     await conversation.endSession();
@@ -165,8 +202,8 @@ export default function LearnPage() {
     }
   };
 
-  const completedCount = roadmapItems.filter(item => item.status === 'completed').length;
-  const progressPercentage = Math.round((completedCount / roadmapItems.length) * 100);
+  const completedCount = currentCurriculum.items.filter(item => item.status === 'completed').length;
+  const progressPercentage = Math.round((completedCount / currentCurriculum.items.length) * 100);
 
   return (
     <div className="min-h-screen bg-dark-900 dark flex flex-col">
@@ -206,7 +243,7 @@ export default function LearnPage() {
           <div className="px-6 py-4 border-b border-white/10 flex items-center justify-between">
             <div>
               <h1 className="text-2xl font-bold text-white">Conversation Practice</h1>
-              <p className="text-gray-400">Topic: Ordering Coffee in Spanish</p>
+              <p className="text-gray-400">Topic: {currentCurriculum.topic}</p>
             </div>
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
@@ -331,7 +368,7 @@ export default function LearnPage() {
           
           <div className="mb-6">
             <div className="flex justify-between text-sm mb-2">
-              <span className="text-gray-400">Level 1: Spanish Basics</span>
+              <span className="text-gray-400">{currentCurriculum.level}</span>
               <span className="text-green-400 font-medium">{progressPercentage}% Complete</span>
             </div>
             <div className="progress-bar">
@@ -343,7 +380,7 @@ export default function LearnPage() {
           </div>
 
           <div className="space-y-3">
-            {roadmapItems.map((item) => (
+            {currentCurriculum.items.map((item) => (
               <div
                 key={item.id}
                 className={`flex items-center gap-3 p-3 rounded-xl transition-all ${
@@ -420,5 +457,13 @@ export default function LearnPage() {
         )}
       </motion.button>
     </div>
+  );
+}
+
+export default function LearnPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-dark-900 flex items-center justify-center text-white">Loading...</div>}>
+      <LearnPageContent />
+    </Suspense>
   );
 }
