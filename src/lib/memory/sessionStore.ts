@@ -34,14 +34,6 @@ interface MisSpokeDB extends DBSchema {
       lastPracticeDate: number;
     };
   };
-  curriculumProgress: {
-    key: string;
-    value: {
-      lang: string;
-      items: { id: string; status: 'completed' | 'in-progress' | 'locked' }[];
-      lastUpdated: number;
-    };
-  };
   users: {
     key: string;
     value: {
@@ -75,10 +67,6 @@ export const getDB = () => {
           db.createObjectStore('userProfile', { keyPath: 'id' });
         }
 
-        // Curriculum progress store
-        if (!db.objectStoreNames.contains('curriculumProgress')) {
-          db.createObjectStore('curriculumProgress', { keyPath: 'lang' });
-        }
 
         // Users store
         if (!db.objectStoreNames.contains('users')) {

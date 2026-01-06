@@ -14,8 +14,7 @@ import {
 
 import { useConversation } from '@11labs/react';
 import { useVoiceMemory } from '@/hooks/useVoiceMemory';
-import { getCurriculumProgress, getLatestSession } from '@/lib/memory/sessionStore';
-import { Curriculum, RoadmapItem, curriculums } from '@/lib/curriculum';
+import { getLatestSession } from '@/lib/memory/sessionStore';
 import Header from '@/components/Header';
 
 interface Message {
@@ -34,23 +33,12 @@ function LearnPageContent() {
   const lang = searchParams.get('lang') || 'spanish';
   const personality = searchParams.get('personality') || 'cheerful';
 
-  const [currentCurriculum, setCurrentCurriculum] = useState<Curriculum>(() => curriculums[lang.toLowerCase()] || curriculums.default);
+  const [topic] = useState('Immersive Daily Conversation');
+  const [level] = useState('Beginner');
 
-  // Load persisted curriculum and last session on mount
+  // Load Latest Chat History on mount
   useEffect(() => {
     const loadSessionData = async () => {
-      // Load Curriculum
-      const stored = await getCurriculumProgress(lang);
-      const baseCurriculum = curriculums[lang.toLowerCase()] || curriculums.default;
-
-      if (stored) {
-        setCurrentCurriculum({
-          ...baseCurriculum,
-          items: stored.items as RoadmapItem[]
-        });
-      }
-
-      // Load Latest Chat History
       const lastSession = await getLatestSession(lang);
       if (lastSession && lastSession.messages.length > 0) {
         setMessages(lastSession.messages.map((m: any) => ({
@@ -61,51 +49,20 @@ function LearnPageContent() {
           correction: m.correction
         })));
       } else {
-        // Initial AI message if no history
         setMessages([
           {
             id: '1',
             type: 'ai',
-            content: baseCurriculum.initialMessage,
-            timestamp: new Date('2024-01-01T12:00:00')
+            content: `Hello! I am your ${personality} ${lang} tutor. Ready to practice?`,
+            timestamp: new Date()
           }
         ]);
       }
     };
     loadSessionData();
-  }, [lang]);
+  }, [lang, personality]);
 
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: '1',
-      type: 'ai',
-      content: currentCurriculum.initialMessage,
-      timestamp: new Date('2024-01-01T12:00:00')
-    }
-  ]);
-
-  // Update messages when language changes
-  useEffect(() => {
-    const newCurriculum = curriculums[lang.toLowerCase()] || curriculums.default;
-    // We don't necessarily want to reset items here if they were loaded from IDB
-    // but the initial messages and basic structure should update
-    setCurrentCurriculum(prev => {
-      const isSameLanguage = prev.level.toLowerCase().includes(lang.toLowerCase());
-      return {
-        ...newCurriculum,
-        items: isSameLanguage ? prev.items : newCurriculum.items
-      };
-    });
-
-    setMessages([
-      {
-        id: '1',
-        type: 'ai',
-        content: newCurriculum.initialMessage,
-        timestamp: new Date('2024-01-01T12:00:00')
-      }
-    ]);
-  }, [lang]);
+  const [messages, setMessages] = useState<Message[]>([]);
 
   const [inputValue, setInputValue] = useState('');
   const [isConnected, setIsConnected] = useState(false);
@@ -175,20 +132,25 @@ function LearnPageContent() {
             language: lang,
             nativeLanguage: nativeLang,
             personality: personality,
-            topic: currentCurriculum.topic,
-            level: currentCurriculum.level
+            topic: 'Immersive Daily Conversation',
+            level: 'Beginner'
           })
         });
         const data = await response.json();
         setAgentConfig(data);
 
-        // Update the initial message
-        setMessages([{
-          id: uuidv4(),
-          type: 'ai',
-          content: data.firstMessage,
-          timestamp: new Date()
-        }]);
+        // Update the initial message only if no history exists
+        setMessages(prev => {
+          if (prev.length === 0) {
+            return [{
+              id: uuidv4(),
+              type: 'ai',
+              content: data.firstMessage,
+              timestamp: new Date()
+            }];
+          }
+          return prev;
+        });
       } catch (error) {
         console.error('Failed to fetch prompt:', error);
       } finally {
@@ -197,20 +159,17 @@ function LearnPageContent() {
     };
 
     fetchPrompt();
-  }, [lang, personality, currentCurriculum.topic, currentCurriculum.level]);
+  }, [lang, personality, topic, level]);
 
   // ElevenLabs Conversation Hook
   const conversation = useConversation({
     onConnect: () => {
-      console.log('Connected to ElevenLabs');
       setIsConnected(true);
     },
     onDisconnect: () => {
-      console.log('Disconnected from ElevenLabs');
       setIsConnected(false);
     },
     onMessage: (message: { message?: string; source?: string }) => {
-      console.log('Message:', message);
       if (message.message) {
         setMessages(prev => [...prev, {
           id: uuidv4(),
@@ -232,7 +191,6 @@ function LearnPageContent() {
     if (isConnected && agentConfig) {
       // Try to send context to the agent
       const contextMessage = `System Update: ${agentConfig.systemPrompt}`;
-      console.log('Sending context:', contextMessage);
 
       // Attempt to send hidden context message if supported
       // @ts-ignore
@@ -257,6 +215,12 @@ function LearnPageContent() {
         agentId: agentId,
         // @ts-ignore
         connectionType: 'websocket',
+        dynamicVariables: {
+          language: lang,
+          personality: personality,
+          level: level,
+          topic: topic
+        }
       });
     } catch (error) {
       console.error('Failed to start conversation:', error);
@@ -265,18 +229,9 @@ function LearnPageContent() {
 
   const endConversation = useCallback(async () => {
     await conversation.endSession();
-    // Save session to memory and update curriculum
-    await saveSessionToMemory(messages, lang, personality, currentCurriculum.topic);
-
-    // Refresh curriculum from IDB to show updates
-    const stored = await getCurriculumProgress(lang);
-    if (stored) {
-      setCurrentCurriculum(prev => ({
-        ...prev,
-        items: stored.items as RoadmapItem[]
-      }));
-    }
-  }, [conversation, messages, lang, personality, saveSessionToMemory, currentCurriculum.topic]);
+    // Save session to memory
+    await saveSessionToMemory(messages, lang, personality, 'Immersive Daily Conversation');
+  }, [conversation, messages, lang, personality, saveSessionToMemory]);
 
   const toggleMute = useCallback(() => {
     if (isMuted) {
@@ -327,7 +282,8 @@ function LearnPageContent() {
       timestamp: new Date()
     };
 
-    setMessages(prev => [...prev, newMessage]);
+    const updatedMessages = [...messages, newMessage];
+    setMessages(updatedMessages);
     setInputValue('');
 
     // Send text to AI
@@ -342,14 +298,26 @@ function LearnPageContent() {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            messages: [...messages, newMessage],
+            messages: updatedMessages, // Send the newly updated history
             language: lang,
             personality: personality,
-            topic: currentCurriculum.topic,
-            level: currentCurriculum.level
+            topic: topic,
+            level: level
           })
         });
         const data = await response.json();
+
+        if (!response.ok) {
+          console.error('❌ Chat API Error:', response.status, data);
+          setMessages(prev => [...prev, {
+            id: uuidv4(),
+            type: 'ai',
+            content: `Error: ${data.error || 'Failed to get response'}. Check console for details.`,
+            timestamp: new Date()
+          }]);
+          return;
+        }
+
         if (data.content) {
           setMessages(prev => [...prev, {
             id: uuidv4(),
@@ -357,6 +325,8 @@ function LearnPageContent() {
             content: data.content,
             timestamp: new Date()
           }]);
+        } else {
+          console.warn('⚠️ No content in response:', data);
         }
       } catch (error) {
         console.error('Failed to send text message:', error);
@@ -367,8 +337,6 @@ function LearnPageContent() {
 
   };
 
-  const completedCount = currentCurriculum.items.filter(item => item.status === 'completed').length;
-  const progressPercentage = Math.round((completedCount / currentCurriculum.items.length) * 100);
 
   return (
     <div className="min-h-screen bg-dark-900 dark flex flex-col pt-20">
@@ -382,7 +350,7 @@ function LearnPageContent() {
           <div className="px-6 py-4 border-b border-white/10 flex items-center justify-between">
             <div>
               <h1 className="text-2xl font-bold text-white">{t('practice')}</h1>
-              <p className="text-gray-400">{t('topic')}: {currentCurriculum.topic}</p>
+              <p className="text-gray-400">{t('topic')}: Immersive Daily Conversation</p>
             </div>
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
@@ -502,73 +470,6 @@ function LearnPageContent() {
             </div>
           </div>
         </div>
-
-        {/* Roadmap Sidebar */}
-        <div className="w-80 border-l border-white/10 p-6 hidden lg:block">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-lg font-bold text-white">{t('roadmap')}</h2>
-            <button className="text-gray-400 hover:text-white">
-              <MoreVertical className="w-5 h-5" />
-            </button>
-          </div>
-
-          <div className="mb-6">
-            <div className="flex justify-between text-sm mb-2">
-              <span className="text-gray-400">{currentCurriculum.level}</span>
-              <span className="text-green-400 font-medium">{progressPercentage}% {t('complete')}</span>
-            </div>
-            <div className="progress-bar">
-              <div
-                className="progress-bar-fill"
-                style={{ width: `${progressPercentage}%` }}
-              />
-            </div>
-          </div>
-
-          <div className="space-y-3">
-            {currentCurriculum.items.map((item) => (
-              <div
-                key={item.id}
-                className={`flex items-center gap-3 p-3 rounded-xl transition-all ${item.status === 'in-progress'
-                  ? 'bg-primary-500/20 border border-primary-500/30'
-                  : item.status === 'completed'
-                    ? 'bg-dark-800'
-                    : 'bg-dark-800/50'
-                  }`}
-              >
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${item.status === 'completed'
-                  ? 'bg-green-500/20 text-green-400'
-                  : item.status === 'in-progress'
-                    ? 'bg-primary-500 text-white'
-                    : 'bg-dark-700 text-gray-500'
-                  }`}>
-                  {item.status === 'completed' ? (
-                    <CheckCircle className="w-5 h-5" />
-                  ) : item.status === 'in-progress' ? (
-                    <PlayCircle className="w-5 h-5" />
-                  ) : (
-                    <Lock className="w-4 h-4" />
-                  )}
-                </div>
-                <div className="flex-1">
-                  <p className={`font-medium ${item.status === 'locked' ? 'text-gray-500' : 'text-white'
-                    }`}>
-                    {item.title}
-                  </p>
-                  <p className={`text-xs ${item.status === 'completed'
-                    ? 'text-green-400'
-                    : item.status === 'in-progress'
-                      ? 'text-primary-400'
-                      : 'text-gray-500'
-                    }`}>
-                    {item.status === 'completed' ? t('completed') :
-                      item.status === 'in-progress' ? t('in_progress') : t('locked')}
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
       </div>
 
       {/* Voice Overlay */}
@@ -594,7 +495,7 @@ function LearnPageContent() {
                   {lang}
                 </span>
                 <span className="w-1.5 h-1.5 rounded-full bg-gray-600" />
-                <span className="text-gray-400 font-medium">{currentCurriculum.topic}</span>
+                <span className="text-gray-400 font-medium">{topic}</span>
               </div>
             </div>
 

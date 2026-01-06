@@ -6,6 +6,16 @@
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY || process.env.NEXT_PUBLIC_OPENROUTER_API_KEY;
 const OPENROUTER_BASE_URL = 'https://openrouter.ai/api/v1';
 
+// Diagnostic logging
+if (typeof window === 'undefined') { // Server-side only
+    if (!OPENROUTER_API_KEY) {
+        console.error('❌ CRITICAL: OPENROUTER_API_KEY is not set! Text chat will not work.');
+        console.log('📝 Add OPENROUTER_API_KEY to your .env.local file and restart the server.');
+    } else {
+        console.log('✅ OpenRouter API key detected (length:', OPENROUTER_API_KEY.length, ')');
+    }
+}
+
 // Available models to try in order of preference
 // Optimized based on actual availability and performance
 const modelsToTry = [
@@ -66,15 +76,21 @@ export async function generateContentSafe(prompt: string): Promise<string | null
             });
 
             if (!response.ok) {
-                const error = await response.json();
+                const errorText = await response.text();
+                let errorData;
+                try {
+                    errorData = JSON.parse(errorText);
+                } catch (e) {
+                    errorData = { message: errorText };
+                }
+
+                console.warn(`❌ Model ${modelName} failed (${response.status}):`, errorData);
 
                 // If rate limited, try next model immediately
-                if (error.error?.code === 429) {
+                if (response.status === 429) {
                     console.warn(`⏱️  Rate limited on ${modelName}, trying next model...`);
                     continue;
                 }
-
-                console.warn(`Failed with model ${modelName}:`, error);
                 continue;
             }
 
@@ -96,46 +112,53 @@ export async function generateContentSafe(prompt: string): Promise<string | null
 }
 
 /**
- * Generate content with custom messages (for more complex conversations)
+ * Generate content with custom messages (with automatic model fallback)
  */
-export async function generateWithMessages(
-    messages: OpenRouterMessage[],
-    model?: string
+export async function generateWithMessagesSafe(
+    messages: OpenRouterMessage[]
 ): Promise<string | null> {
     if (!OPENROUTER_API_KEY) {
         console.error('❌ OPENROUTER_API_KEY is not set');
         return null;
     }
 
-    const targetModel = model || modelsToTry[0];
+    for (const modelName of modelsToTry) {
+        try {
+            const response = await fetch(`${OPENROUTER_BASE_URL}/chat/completions`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+                    'Content-Type': 'application/json',
+                    'HTTP-Referer': process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000',
+                    'X-Title': 'Language Tutor Bot'
+                },
+                body: JSON.stringify({
+                    model: modelName,
+                    messages
+                })
+            });
 
-    try {
-        const response = await fetch(`${OPENROUTER_BASE_URL}/chat/completions`, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
-                'Content-Type': 'application/json',
-                'HTTP-Referer': process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000',
-                'X-Title': 'Language Tutor Bot'
-            },
-            body: JSON.stringify({
-                model: targetModel,
-                messages
-            })
-        });
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.warn(`❌ Model ${modelName} failed (${response.status}):`, errorText);
+                continue;
+            }
 
-        if (!response.ok) {
-            const error = await response.json();
-            console.error('OpenRouter API error:', error);
-            return null;
+            const data: OpenRouterResponse = await response.json();
+            const content = data.choices[0]?.message?.content;
+
+            if (content) {
+                console.log(`✅ Success with model: ${data.model}`);
+                return content;
+            }
+        } catch (error) {
+            console.warn(`Failed with model ${modelName}:`, error);
+            continue;
         }
-
-        const data: OpenRouterResponse = await response.json();
-        return data.choices[0]?.message?.content || null;
-    } catch (error) {
-        console.error('Error calling OpenRouter:', error);
-        return null;
     }
+
+    console.error('❌ All models failed');
+    return null;
 }
 
 /**

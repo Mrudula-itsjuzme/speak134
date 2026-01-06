@@ -19,33 +19,33 @@ export async function POST(request: Request) {
     }
 
     const prompt = `
-      Create a detailed system prompt for an AI language tutor with the following traits:
-      - Target Language: ${language}
-      - User's Native Language: ${nativeLanguage}
-      - Personality: ${personality}
-      - Current Topic: ${topic}
-      - User Level: ${level}
+      You are generating the SYSTEM PROMPT for an AI language tutor.
+      
+      STRICT REQUIREMENTS:
+      1. Target Language: ${language} (The AI MUST speak primarily in this language).
+      2. Persona: ${personality} (The AI MUST embody this personality throughout).
+      3. User's Native Language: ${nativeLanguage} (Only for translations/explanations).
+      4. Level: ${level || 'Beginner'}
+      5. Current Topic: ${topic || 'Immersive Daily Conversation'}
 
-      The system prompt should be designed for an ElevenLabs Conversational Agent.
-      It must instruct the AI to:
-      1. Behave consistently as the specified personality.
-      2. Speak primarily in ${language}, adapting complexity to ${level}.
-      3. Provide brief translations or explanations in ${nativeLanguage} ONLY when necessary or asked.
-      4. Correct mistakes gently and encouragingly.
-      5. Keep responses concise (1-3 sentences) to maintain conversational flow.
-      6. Engage the user with relevant questions about the topic.
+      INSTRUCTIONS for the AI Agent:
+      - Start the conversation AS IF YOU ALREADY KNOW the user's intent.
+      - Use ${language} for 90% of the interaction.
+      - Correct the user's mistakes gently but clearly.
+      - Keep responses concise (1-3 sentences).
+      - NEVER ask the user what language they want to learn or their level.
+      - DO NOT introduce yourself as a general bot. You are the specific ${personality} ${language} tutor.
+      - Ensure the "firstMessage" is in ${language}, reflects the ${personality} persona, and mentions the topic: ${topic}.
 
       ${historyContext ? `---
-      PREVIOUS CONTEXT (Use this to provide continuity):
+      PREVIOUS CONTEXT:
       ${historyContext}
       ---` : ''}
 
-      Also generate a welcoming "first message" to start the conversation.
-
       Output JSON format:
       {
-        "systemPrompt": "The detailed instruction for the AI...",
-        "firstMessage": "The opening greeting in the target language..."
+        "systemPrompt": "The full instruction for the AI tutor...",
+        "firstMessage": "The opening greeting in ${language}..."
       }
     `;
 

@@ -1,6 +1,5 @@
 import { useState, useCallback } from 'react';
-import { saveSession, updateUserProfile, getUserProfile, getCurriculumProgress, saveCurriculumProgress } from '@/lib/memory/sessionStore';
-import { generateSessionSummary } from '@/lib/openrouter/client';
+import { saveSession, updateUserProfile, getUserProfile } from '@/lib/memory/sessionStore';
 import { v4 as uuidv4 } from 'uuid';
 
 export interface ChatMessage {
@@ -33,8 +32,13 @@ export function useVoiceMemory() {
         .map(m => `${m.type.toUpperCase()}: ${m.content}`)
         .join('\n');
 
-      // Generate AI summary
-      const analysis = await generateSessionSummary(transcript);
+      // Generate AI summary via server API
+      const response = await fetch('/api/summary', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ transcript })
+      });
+      const analysis = await response.json();
 
       // Save to IndexedDB
       await saveSession({
@@ -55,36 +59,6 @@ export function useVoiceMemory() {
         emotions: analysis?.emotions || []
       });
 
-      // Update Curriculum Progress
-      try {
-        const storedCurriculum = await getCurriculumProgress(language);
-        // We import curriculums here to avoid circular dependency if it was in sessionStore
-        const { curriculums } = await import('@/lib/curriculum');
-        const staticCurriculum = curriculums[language.toLowerCase()] || curriculums.default;
-
-        let items = storedCurriculum?.items || staticCurriculum.items;
-
-        // Find current topic and mark as completed if summary confirms
-        const updatedItems = items.map(item => {
-          if (item.id === currentTopic) {
-            return { ...item, status: 'completed' as const };
-          }
-          return item;
-        });
-
-        // Mark the next item as in-progress if one exists
-        const currentIndex = updatedItems.findIndex(i => i.status === 'completed' && i.id === currentTopic);
-        if (currentIndex !== -1 && currentIndex + 1 < updatedItems.length) {
-          if (updatedItems[currentIndex + 1].status === 'locked') {
-            updatedItems[currentIndex + 1] = { ...updatedItems[currentIndex + 1], status: 'in-progress' as const };
-          }
-        }
-
-        await saveCurriculumProgress(language, updatedItems);
-        console.log('Curriculum updated for:', currentTopic);
-      } catch (curricError) {
-        console.error('Failed to update curriculum:', curricError);
-      }
 
       // Update User Profile
       const profile = await getUserProfile();
