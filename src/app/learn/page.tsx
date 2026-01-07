@@ -162,6 +162,7 @@ function LearnPageContent() {
     },
     onDisconnect: () => {
       setIsConnected(false);
+      setIsEnding(false);
     },
     onMessage: (message: { message?: string; source?: string }) => {
       if (message.message) {
@@ -174,6 +175,11 @@ function LearnPageContent() {
       }
     },
     onError: (error: string | Error) => {
+      const errorMessage = typeof error === 'string' ? error : error.message;
+      if (errorMessage.includes('CLOSING') || errorMessage.includes('CLOSED')) {
+        console.warn('Benign ElevenLabs WebSocket closure caught:', errorMessage);
+        return;
+      }
       console.error('ElevenLabs error:', error);
     }
   });
@@ -234,9 +240,9 @@ function LearnPageContent() {
       }
     } catch (error) {
       console.warn('Caught WebSocket error during disconnect (expected):', error);
-    } finally {
-      setIsConnected(false);
       setIsEnding(false);
+    } finally {
+      // isEnding and isConnected will be handled by onDisconnect
       // Always try to save session to memory even if WebSocket fails
       await saveSessionToMemory(messages, lang, personality, 'Immersive Daily Conversation');
     }
