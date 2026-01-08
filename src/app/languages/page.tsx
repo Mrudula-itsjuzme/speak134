@@ -106,6 +106,50 @@ const languages: Language[] = [
     learners: '500k+',
     popularity: 65,
     features: ['Travel Situations', 'Listening Focus']
+  },
+  {
+    id: 'hindi',
+    name: 'Hindi',
+    nativeName: 'हिन्दी',
+    flag: '🇮🇳',
+    difficulty: 'Beginner Friendly',
+    hours: 1100,
+    learners: '600M+',
+    popularity: 95,
+    features: ['Devanagari Script', 'Bollywood Context']
+  },
+  {
+    id: 'telugu',
+    name: 'Telugu',
+    nativeName: 'తెలుగు',
+    flag: '🇮🇳',
+    difficulty: 'Intermediate',
+    hours: 1100,
+    learners: '96M+',
+    popularity: 88,
+    features: ['Dravidian Grammar', 'Classical Literature']
+  },
+  {
+    id: 'malayalam',
+    name: 'Malayalam',
+    nativeName: 'മലയാളം',
+    flag: '🇮🇳',
+    difficulty: 'Advanced',
+    hours: 1100,
+    learners: '38M+',
+    popularity: 82,
+    features: ['Unique Script', 'Agglutinative']
+  },
+  {
+    id: 'kannada',
+    name: 'Kannada',
+    nativeName: 'ಕನ್ನಡ',
+    flag: '🇮🇳',
+    difficulty: 'Intermediate',
+    hours: 1100,
+    learners: '44M+',
+    popularity: 85,
+    features: ['Oldest Inscriptions', 'Diglossia']
   }
 ];
 

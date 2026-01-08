@@ -307,7 +307,7 @@ function LearnPageContent() {
       };
 
       const targetLocale = localeMap[lang.toLowerCase()] || 'en';
-      const isIndianLanguage = ['telugu', 'tamil', 'malayalam', 'hindi'].includes(lang.toLowerCase());
+      const isIndianLanguage = ['telugu', 'tamil', 'malayalam', 'hindi', 'kannada'].includes(lang.toLowerCase());
 
       // specialized accent instruction
       let accentInstruction = `You are a native tutor of ${lang}. Speak with a strong, authentic ${lang} accent.`;
@@ -497,7 +497,8 @@ function LearnPageContent() {
       'tamil': 'ta-IN',
       'telugu': 'te-IN',
       'malayalam': 'ml-IN',
-      'hindi': 'hi-IN'
+      'hindi': 'hi-IN',
+      'kannada': 'kn-IN'
     };
 
     const targetLang = langMap[lang.toLowerCase()] || 'en-US';

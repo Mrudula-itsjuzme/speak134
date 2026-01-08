@@ -2,8 +2,13 @@ import { NextResponse } from 'next/server';
 import { generateWithMessagesSafe } from '@/lib/openrouter/client';
 
 export async function POST(request: Request) {
+    console.log('DEBUG: /api/chat hit');
+    const apiKey = process.env.OPENROUTER_API_KEY || process.env.NEXT_PUBLIC_OPENROUTER_API_KEY;
+    console.log('DEBUG: Chat API Key present:', !!apiKey);
+
     try {
         const { messages, language, personality, topic, level } = await request.json();
+        console.log('DEBUG: Chat messages received:', messages?.length);
 
         if (!messages || !Array.isArray(messages)) {
             return NextResponse.json({ error: 'Messages are required' }, { status: 400 });
