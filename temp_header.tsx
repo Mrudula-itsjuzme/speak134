@@ -18,8 +18,12 @@ export default function Header() {
             const email = await getLoggedInUser();
             if (email) {
                 const userData = await getUser(email);
-                if (userData) {
-                    setUser(userData);
+                if (userData && userData.email) {
+                    setUser({
+                        name: userData.user_metadata?.name || 'User',
+                        email: userData.email,
+                        learningLanguage: undefined
+                    });
                 }
             }
         };
