@@ -102,7 +102,7 @@ export default function LandingPage() {
           className="relative z-10"
         >
           <Link href="/native-language" className="group relative">
-            <div className="absolute inset-0 bg-gray-800 rounded-full blur-xl opacity-10 group-hover:opacity-20 transition-opacity" />
+            <div className="absolute inset-0 bg-primary-900 rounded-full blur-xl opacity-10 group-hover:opacity-20 transition-opacity" />
             <div className="relative bg-[#A89B93] text-[#2a2a2a] px-12 py-4 rounded-full text-xl font-semibold shadow-2xl hover:scale-105 transition-transform border border-black/5 flex items-center gap-3">
               Master a New Language, Just by Speaking!
             </div>
@@ -139,7 +139,7 @@ export default function LandingPage() {
               <div className="relative grid grid-cols-2 gap-4 mb-6">
                 <div className="flex items-center gap-2 text-gray-400">
                   <Clock className="w-4 h-4" />
-                  <span className="text-sm font-medium text-gray-200">{lang.hours}</span>
+                  <span className="text-sm font-medium text-stone-200">{lang.hours}</span>
                 </div>
                 <div className="flex items-center gap-2 text-gray-400">
                   <Users className="w-4 h-4" />
@@ -219,7 +219,7 @@ export default function LandingPage() {
                 transition={{ delay: index * 0.1 }}
                 className="glass-light rounded-2xl p-6 card-hover"
               >
-                <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-primary-500 to-purple-500 flex items-center justify-center text-white mb-4">
+                <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center text-white mb-4">
                   {feature.icon}
                 </div>
                 <h3 className="text-xl font-bold text-dark-900 mb-2">{feature.title}</h3>
@@ -265,7 +265,7 @@ export default function LandingPage() {
                 transition={{ delay: index * 0.1 }}
                 className="group relative overflow-hidden rounded-2xl aspect-[4/3] cursor-pointer card-hover"
               >
-                <div className="absolute inset-0 bg-gradient-to-br from-primary-600 to-purple-600" />
+                <div className="absolute inset-0 bg-gradient-to-br from-primary-600 to-stone-800" />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
                 <div className="absolute bottom-0 left-0 right-0 p-6">
                   <div className="flex items-center gap-3 mb-2">
@@ -328,7 +328,7 @@ export default function LandingPage() {
               >
                 <p className="text-dark-600 mb-6 italic">&ldquo;{testimonial.quote}&rdquo;</p>
                 <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary-400 to-purple-400" />
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary-400 to-primary-600" />
                   <div>
                     <p className="font-semibold text-dark-900">{testimonial.name}</p>
                     <p className="text-sm text-dark-500">{testimonial.role}</p>
@@ -347,7 +347,7 @@ export default function LandingPage() {
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="bg-gradient-to-br from-primary-500 to-purple-600 rounded-3xl p-12 text-center text-white"
+            className="bg-gradient-to-br from-primary-500 to-primary-800 rounded-3xl p-12 text-center text-white"
           >
             <h2 className="text-4xl font-bold mb-4">Ready to speak with confidence?</h2>
             <p className="text-xl text-white/80 mb-8 max-w-2xl mx-auto">
@@ -364,7 +364,7 @@ export default function LandingPage() {
       <footer className="py-8 border-t border-gray-100">
         <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-4">
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 bg-gradient-to-br from-primary-500 to-purple-500 rounded-lg flex items-center justify-center">
+            <div className="w-6 h-6 bg-gradient-to-br from-primary-500 to-primary-700 rounded-lg flex items-center justify-center">
               <Mic className="w-3 h-3 text-white" />
             </div>
             <span className="font-bold text-dark-900">MisSpoke</span>

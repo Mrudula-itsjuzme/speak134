@@ -51,7 +51,7 @@ export default function Header() {
                                 href={item.path}
                                 className={`px-6 py-2 rounded-full text-sm font-medium transition-all duration-300 ${pathname === item.path
                                     ? 'bg-[#1e1e1e] text-white shadow-lg'
-                                    : 'text-gray-400 hover:text-white hover:bg-white/5'
+                                    : 'text-stone-400 hover:text-white hover:bg-white/5'
                                     }`}
                             >
                                 {item.name}
@@ -62,7 +62,7 @@ export default function Header() {
 
                 {/* Right Area: Search & Profile */}
                 <div className="flex items-center gap-3 pr-2">
-                    <button className="w-10 h-10 rounded-full flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/5 transition-colors">
+                    <button className="w-10 h-10 rounded-full flex items-center justify-center text-stone-400 hover:text-white hover:bg-white/5 transition-colors">
                         <Search className="w-5 h-5" />
                     </button>
 
@@ -79,7 +79,7 @@ export default function Header() {
                             <Link href="/login" className="px-5 py-2 rounded-full text-sm font-bold text-white bg-white/5 hover:bg-white/10 transition-colors">
                                 {t('login', 'Log In')}
                             </Link>
-                            <Link href="/signup" className="px-5 py-2 rounded-full text-sm font-bold text-dark-900 bg-white hover:bg-gray-100 transition-colors shadow-lg shadow-white/10">
+                            <Link href="/signup" className="px-5 py-2 rounded-full text-sm font-bold text-dark-900 bg-white hover:bg-stone-100 transition-colors shadow-lg shadow-white/10">
                                 {t('signup', 'Sign Up')}
                             </Link>
                         </div>

@@ -22,19 +22,19 @@ const config: Config = {
           800: '#473524',
           900: '#3a2b1e',
         },
-        // Dark Theme Colors
+        // Dark Theme Colors - Warm Grey/Stone
         dark: {
-          50: '#f8fafc',
-          100: '#f1f5f9',
-          200: '#e2e8f0',
-          300: '#cbd5e1',
-          400: '#94a3b8',
-          500: '#64748b',
-          600: '#475569',
-          700: '#334155',
-          800: '#1e293b',
-          900: '#0f172a',  // Main background
-          950: '#020617',
+          50: '#fafaf9',
+          100: '#f5f5f4',
+          200: '#e7e5e4',
+          300: '#d6d3d1',
+          400: '#a8a29e',
+          500: '#78716c',
+          600: '#57534e',
+          700: '#44403c',
+          800: '#292524',
+          900: '#1c1917',  // Main background
+          950: '#0c0a09',
         },
         // Accent Colors
         accent: {
@@ -52,7 +52,7 @@ const config: Config = {
         'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
         'gradient-conic': 'conic-gradient(from 180deg at 50% 50%, var(--tw-gradient-stops))',
         'gradient-primary': 'linear-gradient(135deg, #8B6F47 0%, #6B4423 100%)',
-        'gradient-dark': 'linear-gradient(180deg, #0f172a 0%, #1e293b 100%)',
+        'gradient-dark': 'linear-gradient(180deg, #1c1917 0%, #292524 100%)',
       },
       animation: {
         'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
