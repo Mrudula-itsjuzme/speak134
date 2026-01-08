@@ -4,61 +4,10 @@
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import Image from 'next/image';
-import { ArrowRight, Mic, Globe, Sparkles, Users, MessageCircle, Plane, Coffee, Briefcase, ShoppingBag, Utensils, Clock, Flame } from 'lucide-react';
+import { ArrowRight, Mic, Globe, Sparkles, Users, MessageCircle, Plane, Coffee, Briefcase, ShoppingBag, Utensils } from 'lucide-react';
 import Header from '@/components/Header';
 
 export default function LandingPage() {
-
-  const featuredLanguages = [
-    {
-      code: 'ES',
-      name: 'Español',
-      sub: 'Spanish',
-      level: 'Beginner Friendly',
-      levelColor: 'bg-green-500/20 text-green-400 border-green-500/30',
-      hours: '~600 hrs',
-      learners: '1.2M+',
-      popularity: 98,
-      feature: 'Real-world convo focus',
-      gradient: 'from-primary-500/10 to-transparent'
-    },
-    {
-      code: 'FR',
-      name: 'Français',
-      sub: 'French',
-      level: 'Intermediate',
-      levelColor: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
-      hours: '~750 hrs',
-      learners: '850k+',
-      popularity: 85,
-      feature: 'Culture & Literature',
-      gradient: 'from-primary-500/10 to-transparent'
-    },
-    {
-      code: 'JP',
-      name: '日本語',
-      sub: 'Japanese',
-      level: 'Advanced',
-      levelColor: 'bg-red-500/20 text-red-400 border-red-500/30',
-      hours: '~2200 hrs',
-      learners: '920k+',
-      popularity: 90,
-      feature: 'Kanji Writer',
-      gradient: 'from-primary-500/10 to-transparent'
-    },
-    {
-      code: 'DE',
-      name: 'Deutsch',
-      sub: 'German',
-      level: 'Intermediate',
-      levelColor: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
-      hours: '~750 hrs',
-      learners: '600k+',
-      popularity: 70,
-      feature: 'Technical Vocab',
-      gradient: 'from-primary-500/10 to-transparent'
-    }
-  ];
 
   return (
     <div className="min-h-screen bg-[#C8BCB3] dark:bg-dark-900 overflow-hidden font-sans selection:bg-black selection:text-white">

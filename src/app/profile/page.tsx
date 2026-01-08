@@ -10,7 +10,7 @@ import {
 } from 'lucide-react';
 import {
     getUser, getLoggedInUser, getAllSessions,
-    getUserProfile, updateUser, type User, type SessionMemory, type UserProfile
+    getUserProfile, type User, type SessionMemory, type UserProfile
 } from '@/lib/memory/sessionStore';
 import Header from '@/components/Header';
 import { personalities } from '@/lib/constants/personalities';
