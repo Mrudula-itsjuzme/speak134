@@ -9,18 +9,18 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // Primary Brand Colors
+        // Primary Brand Colors - Coffee/Brown Theme
         primary: {
-          50: '#eff6ff',
-          100: '#dbeafe',
-          200: '#bfdbfe',
-          300: '#93c5fd',
-          400: '#60a5fa',
-          500: '#3b82f6',  // Main brand blue
-          600: '#2563eb',
-          700: '#1d4ed8',
-          800: '#1e40af',
-          900: '#1e3a8a',
+          50: '#faf8f5',
+          100: '#f0e9e0',
+          200: '#e0d4c3',
+          300: '#c9b59a',
+          400: '#b39771',
+          500: '#8B6F47',  // Main brand coffee brown
+          600: '#6f5839',
+          700: '#5a452d',
+          800: '#473524',
+          900: '#3a2b1e',
         },
         // Dark Theme Colors
         dark: {
@@ -41,7 +41,8 @@ const config: Config = {
           green: '#10b981',
           red: '#ef4444',
           yellow: '#f59e0b',
-          purple: '#8b5cf6',
+          coffee: '#6B4423',
+          cream: '#DCC9B3',
         }
       },
       fontFamily: {
@@ -50,7 +51,7 @@ const config: Config = {
       backgroundImage: {
         'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
         'gradient-conic': 'conic-gradient(from 180deg at 50% 50%, var(--tw-gradient-stops))',
-        'gradient-primary': 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)',
+        'gradient-primary': 'linear-gradient(135deg, #8B6F47 0%, #6B4423 100%)',
         'gradient-dark': 'linear-gradient(180deg, #0f172a 0%, #1e293b 100%)',
       },
       animation: {
@@ -64,13 +65,13 @@ const config: Config = {
           '50%': { transform: 'translateY(-10px)' },
         },
         glow: {
-          '0%': { boxShadow: '0 0 20px rgba(59, 130, 246, 0.3)' },
-          '100%': { boxShadow: '0 0 40px rgba(59, 130, 246, 0.6)' },
+          '0%': { boxShadow: '0 0 20px rgba(139, 111, 71, 0.3)' },
+          '100%': { boxShadow: '0 0 40px rgba(139, 111, 71, 0.6)' },
         },
       },
       boxShadow: {
-        'glow': '0 0 20px rgba(59, 130, 246, 0.4)',
-        'glow-lg': '0 0 40px rgba(59, 130, 246, 0.5)',
+        'glow': '0 0 20px rgba(139, 111, 71, 0.4)',
+        'glow-lg': '0 0 40px rgba(139, 111, 71, 0.5)',
         'glass': '0 8px 32px rgba(0, 0, 0, 0.2)',
       },
       backdropBlur: {

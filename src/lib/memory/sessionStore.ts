@@ -11,11 +11,22 @@ export interface SessionMemory {
     content: string;
     timestamp: number;
     correction?: string;
+    confidence?: number;
   }[];
+  confidenceScores: number[];
   summary?: string;
   mistakes: string[];
   vocabulary: string[];
   emotions: string[];
+  avgConfidence?: number;
+  patterns?: {
+    pronunciation?: string[];
+    grammar?: string[];
+    vocabulary?: string[];
+    commonMistakes?: string[];
+    strengths?: string[];
+    weaknesses?: string[];
+  };
 }
 
 export interface User {
@@ -33,6 +44,11 @@ export interface UserProfile {
   totalSessions: number;
   streakDays: number;
   lastPracticeDate: number;
+  avgConfidenceScore: number;
+  learnedPatterns: {
+    strengths: string[];
+    weaknesses: string[];
+  };
 }
 
 interface MisSpokeDB extends DBSchema {
@@ -118,6 +134,8 @@ export const updateUserProfile = async (updates: Partial<MisSpokeDB['userProfile
     totalSessions: 0,
     streakDays: 0,
     lastPracticeDate: Date.now(),
+    avgConfidenceScore: 0,
+    learnedPatterns: { strengths: [], weaknesses: [] }
   };
 
   await db.put('userProfile', { ...current, ...updates });
@@ -148,10 +166,13 @@ export const getLatestSession = async (lang: string) => {
   return allSessions.reverse().find(s => s.language === lang);
 };
 
+import { hashPassword } from '../utils/security';
+
 // Auth helpers
 export const registerUser = async (user: MisSpokeDB['users']['value']) => {
   const db = await getDB();
-  await db.put('users', { ...user, createdAt: Date.now() });
+  const hashedPassword = user.password ? await hashPassword(user.password) : undefined;
+  await db.put('users', { ...user, password: hashedPassword, createdAt: Date.now() });
 };
 
 export const getUser = async (email: string) => {

@@ -2,92 +2,90 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { Mic, User, LogOut, LayoutDashboard, Users } from 'lucide-react';
-import { getLoggedInUser, logout, getUser, User as AppUser } from '@/lib/memory/sessionStore';
+import { usePathname } from 'next/navigation';
+import { Search } from 'lucide-react';
+import { getLoggedInUser, getUser } from '@/lib/memory/sessionStore';
+import { useTranslation } from '@/hooks/useTranslation';
+import { motion } from 'framer-motion';
 
 export default function Header() {
-    const [user, setUser] = useState<AppUser | null>(null);
-    const router = useRouter();
+    const [user, setUser] = useState<{ name: string; email: string; learningLanguage?: string } | null>(null);
+    const { t } = useTranslation();
+    const pathname = usePathname();
 
     useEffect(() => {
-        const checkUser = async () => {
+        const fetchUser = async () => {
             const email = getLoggedInUser();
             if (email) {
                 const userData = await getUser(email);
-                setUser(userData || null);
-            } else {
-                setUser(null);
+                if (userData) {
+                    setUser(userData);
+                }
             }
         };
-
-        checkUser();
-        // Listen for storage changes (for login/logout in other tabs)
-        window.addEventListener('storage', checkUser);
-        return () => window.removeEventListener('storage', checkUser);
+        fetchUser();
+        window.addEventListener('storage', fetchUser);
+        return () => window.removeEventListener('storage', fetchUser);
     }, []);
 
-    const handleLogout = () => {
-        logout();
-        setUser(null);
-        router.push('/login');
-        // Force a re-render in other components
-        window.dispatchEvent(new Event('storage'));
-    };
+    const navItems = [
+        { name: 'Home', path: '/' },
+        { name: 'Dashboard', path: '/profile' },
+        { name: 'Community', path: '/community' }
+    ];
 
     return (
-        <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 dark:bg-dark-900/80 backdrop-blur-lg border-b border-gray-100 dark:border-white/10">
-            <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-                <Link href="/" className="flex items-center gap-2">
-                    <div className="w-8 h-8 bg-gradient-to-br from-primary-500 to-purple-500 rounded-lg flex items-center justify-center">
-                        <Mic className="w-4 h-4 text-white" />
+        <header className="fixed top-6 left-0 right-0 z-50 flex justify-center px-4 pointer-events-none">
+            <motion.div
+                initial={{ y: -50, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                className="glass-card pointer-events-auto bg-[#2a2a2a]/90 backdrop-blur-xl border border-white/10 rounded-full px-2 py-2 flex items-center shadow-2xl max-w-2xl w-full justify-between"
+            >
+                {/* Logo Area / Left Nav */}
+                <div className="flex items-center gap-1">
+                    {/* Navigation Pills */}
+                    <div className="flex items-center bg-white/5 rounded-full p-1">
+                        {navItems.map((item) => (
+                            <Link
+                                key={item.name}
+                                href={item.path}
+                                className={`px-6 py-2 rounded-full text-sm font-medium transition-all duration-300 ${pathname === item.path
+                                    ? 'bg-[#1e1e1e] text-white shadow-lg'
+                                    : 'text-gray-400 hover:text-white hover:bg-white/5'
+                                    }`}
+                            >
+                                {item.name}
+                            </Link>
+                        ))}
                     </div>
-                    <span className="text-xl font-bold text-dark-900 dark:text-white">MisSpoke</span>
-                </Link>
-
-                <div className="hidden md:flex items-center gap-6">
-                    <Link href="/languages" className="text-sm font-medium text-gray-500 hover:text-dark-900 dark:text-gray-400 dark:hover:text-white transition-colors flex items-center gap-1.5">
-                        <LayoutDashboard className="w-4 h-4" /> Dashboard
-                    </Link>
-                    <Link href="/community" className="text-sm font-medium text-gray-500 hover:text-dark-900 dark:text-gray-400 dark:hover:text-white transition-colors flex items-center gap-1.5">
-                        <Users className="w-4 h-4" /> Community
-                    </Link>
                 </div>
 
-                <div className="flex items-center gap-3">
+                {/* Right Area: Search & Profile */}
+                <div className="flex items-center gap-3 pr-2">
+                    <button className="w-10 h-10 rounded-full flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/5 transition-colors">
+                        <Search className="w-5 h-5" />
+                    </button>
+
+                    <div className="h-6 w-px bg-white/10 mx-1" />
+
                     {user ? (
-                        <div className="flex items-center gap-4">
-                            <span className="hidden sm:inline text-sm font-medium text-dark-700 dark:text-gray-300">
-                                Hi, {user.name.split(' ')[0]}
-                            </span>
-                            <div className="flex items-center gap-2">
-                                <button
-                                    onClick={handleLogout}
-                                    className="p-2 rounded-lg text-gray-500 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-all"
-                                    title="Log Out"
-                                >
-                                    <LogOut className="w-5 h-5" />
-                                </button>
-                                <Link
-                                    href="/profile"
-                                    className="w-10 h-10 rounded-full bg-gradient-to-br from-primary-400 to-purple-400 border-2 border-white dark:border-dark-800 flex items-center justify-center shadow-lg hover:scale-105 transition-transform"
-                                >
-                                    <User className="w-5 h-5 text-white" />
-                                </Link>
+                        <Link href="/profile" className="flex items-center gap-3 pl-2">
+                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center text-white font-bold border-2 border-dark-800 shadow-glow-sm">
+                                {user.name.charAt(0)}
                             </div>
-                        </div>
+                        </Link>
                     ) : (
                         <div className="flex items-center gap-2">
-                            <Link href="/login" className="text-sm font-semibold text-gray-600 dark:text-gray-400 hover:text-dark-900 dark:hover:text-white px-4 py-2">
-                                Log In
+                            <Link href="/login" className="px-5 py-2 rounded-full text-sm font-bold text-white bg-white/5 hover:bg-white/10 transition-colors">
+                                {t('login', 'Log In')}
                             </Link>
-                            <Link href="/signup" className="btn-primary text-sm px-5 py-2">
-                                Sign Up
+                            <Link href="/signup" className="px-5 py-2 rounded-full text-sm font-bold text-dark-900 bg-white hover:bg-gray-100 transition-colors shadow-lg shadow-white/10">
+                                {t('signup', 'Sign Up')}
                             </Link>
                         </div>
                     )}
                 </div>
-            </div>
-        </nav>
+            </motion.div>
+        </header>
     );
 }

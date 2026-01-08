@@ -10,7 +10,7 @@ export async function POST(request: Request) {
         }
 
         if (!targetLanguage || targetLanguage === 'Detect') {
-            // Logic for detection could be added here, but user specifically asked for "native language"
+            return NextResponse.json({ error: 'Target language is required for translation' }, { status: 400 });
         }
 
         const prompt = `

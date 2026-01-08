@@ -1,18 +1,18 @@
 
 'use client';
 
-import { useState, useCallback, useEffect, Suspense } from 'react';
+import { useState, useCallback, useEffect, Suspense, useRef } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSearchParams } from 'next/navigation';
 import {
-  Mic, MicOff, Phone, PhoneOff, Volume2, Languages as LanguagesIcon,
-  User as UserIcon, X
+  Mic, Phone, PhoneOff, Volume2, VolumeX, Languages as LanguagesIcon,
+  User as UserIcon, X, Send
 } from 'lucide-react';
 
 import { useConversation } from '@11labs/react';
 import { useVoiceMemory } from '@/hooks/useVoiceMemory';
-import { getLatestSession } from '@/lib/memory/sessionStore';
+import { getLatestSession, getUserProfile, getAllSessions } from '@/lib/memory/sessionStore';
 import Header from '@/components/Header';
 
 interface Message {
@@ -29,10 +29,37 @@ interface Message {
 function LearnPageContent() {
   const searchParams = useSearchParams();
   const lang = searchParams.get('lang') || 'spanish';
-  const personality = searchParams.get('personality') || 'cheerful';
+  const paramPersonality = searchParams.get('personality');
+  const [personality, setPersonality] = useState(paramPersonality || 'cheerful');
 
-  const [topic] = useState('Immersive Daily Conversation');
-  const [level] = useState('Beginner');
+  useEffect(() => {
+    if (!paramPersonality) {
+      const saved = localStorage.getItem('selectedPersonality');
+      if (saved) setPersonality(saved);
+    }
+  }, [paramPersonality]);
+
+  const [topic, setTopic] = useState('Free Conversation');
+  const [level, setLevel] = useState('Beginner');
+  const [confidenceScores, setConfidenceScores] = useState<number[]>([]);
+
+  // Load dynamic preferences
+  useEffect(() => {
+    const loadPrefs = async () => {
+      // 1. Level from profile
+      const profile = await getUserProfile();
+      if (profile?.currentLevel) {
+        setLevel(profile.currentLevel);
+      }
+
+      // 2. Topic from URL or default
+      const urlTopic = searchParams.get('topic');
+      if (urlTopic) {
+        setTopic(urlTopic);
+      }
+    };
+    loadPrefs();
+  }, [searchParams]);
 
   // Load Latest Chat History on mount
   useEffect(() => {
@@ -84,7 +111,9 @@ function LearnPageContent() {
     'connected': 'Connected',
     'join': 'Join Call',
     'leave': 'Leave',
-    'placeholder': 'Talk to MisSpoke !!'
+    'placeholder': 'Talk to MisSpoke !!',
+    'listening': 'Listening carefully...',
+    'speaking_suffix': 'tutor is speaking...'
   });
 
   const t = (key: string) => {
@@ -117,43 +146,67 @@ function LearnPageContent() {
 
   // Fetch dynamic prompt from Gemini
   useEffect(() => {
+    const controller = new AbortController();
+
     const fetchPrompt = async () => {
       const nativeLang = localStorage.getItem('nativeLanguage') || 'English';
-      // setNativeLanguage(nativeLang); // Already set in fetchTranslations
+
       try {
         const response = await fetch('/api/prompt', {
+          signal: controller.signal,
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             language: lang,
             nativeLanguage: nativeLang,
             personality: personality,
-            topic: 'Immersive Daily Conversation',
-            level: 'Beginner'
+            topic: topic,
+            level: level
           })
         });
-        const data = await response.json();
-        setAgentConfig(data);
 
-        // Update the initial message only if no history exists
-        setMessages(prev => {
-          if (prev.length === 0) {
-            return [{
-              id: uuidv4(),
-              type: 'ai',
-              content: data.firstMessage,
-              timestamp: new Date()
-            }];
-          }
-          return prev;
-        });
+        if (!response.ok) throw new Error('Failed to fetch prompt');
+
+        const data = await response.json();
+
+        if (!controller.signal.aborted) {
+          setAgentConfig(data);
+
+          // Update the initial message only if no history exists
+          setMessages(prev => {
+            if (prev.length === 0) {
+              return [{
+                id: uuidv4(),
+                type: 'ai',
+                content: data.firstMessage,
+                timestamp: new Date()
+              }];
+            }
+            return prev;
+          });
+        }
       } catch (error) {
-        console.error('Failed to fetch prompt:', error);
+        if (error instanceof Error && error.name !== 'AbortError') {
+          console.error('Failed to fetch prompt:', error);
+        }
       }
     };
 
     fetchPrompt();
+
+    return () => controller.abort();
   }, [lang, personality, topic, level]);
+
+  // Auto-scroll to bottom of chat
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
 
   // ElevenLabs Conversation Hook
   const conversation = useConversation({
@@ -164,14 +217,21 @@ function LearnPageContent() {
       setIsConnected(false);
       setIsEnding(false);
     },
-    onMessage: (message: { message?: string; source?: string }) => {
+    onMessage: (message: { message?: string; source?: string; stt_confidence?: number; confidence?: number }) => {
       if (message.message) {
+        const confidence = message.stt_confidence || message.confidence || 0;
+
         setMessages(prev => [...prev, {
           id: uuidv4(),
           type: message.source === 'user' ? 'user' : 'ai',
           content: message.message as string,
-          timestamp: new Date()
+          timestamp: new Date(),
+          confidence: message.source === 'user' ? confidence : undefined
         }]);
+
+        if (message.source === 'user' && confidence > 0) {
+          setConfidenceScores(prev => [...prev, confidence]);
+        }
       }
     },
     onError: (error: string | Error) => {
@@ -184,19 +244,25 @@ function LearnPageContent() {
     }
   });
 
+  // Effect to handle interruption: ElevenLabs automatically handles interruption if configured on the agent dashboard.
+  // The SDK facilitates the "talk-over" naturally through its streaming architecture.
+  useEffect(() => {
+    const lastMessage = messages[messages.length - 1];
+    if (lastMessage?.type === 'user' && isConnected && conversation.isSpeaking) {
+      // User is interrupting - stop AI speech
+      conversation.setVolume({ volume: 0 });
+      // Restore volume quickly but effectively muting the current utterance
+      setTimeout(() => conversation.setVolume({ volume: 1 }), 250);
+    }
+  }, [messages, isConnected, conversation]);
+
   const { endSession: saveSessionToMemory, isSaving } = useVoiceMemory();
 
   // Send initial context when connected
   useEffect(() => {
     if (isConnected && agentConfig) {
-      // Try to send context to the agent
-      // const contextMessage = `System Update: ${agentConfig.systemPrompt}`;
-
-      // Attempt to send hidden context message if supported
-      // @ts-expect-error - sendMessage is optional in this version of the SDK
-      if (typeof conversation.sendMessage === 'function') {
-        // conversation.sendMessage(contextMessage);
-      }
+      // Note: ElevenLabs SDK doesn't support sending hidden context messages
+      // The agent configuration is passed via dynamicVariables in startSession
     }
   }, [isConnected, agentConfig, conversation]);
 
@@ -210,6 +276,65 @@ function LearnPageContent() {
 
       await navigator.mediaDevices.getUserMedia({ audio: true });
 
+      const profile = await getUserProfile();
+      const recentSessions = await getAllSessions();
+
+      const userPatterns = {
+        commonMistakes: profile?.learnedPatterns?.weaknesses || [],
+        strengths: profile?.learnedPatterns?.strengths || [],
+        recentVocabulary: recentSessions
+          .slice(-5)
+          .flatMap(s => s.vocabulary || [])
+          .slice(0, 10)
+      };
+
+      // Construct a strong system instruction to force accent behavior
+      // Determine strict locale (only supported ElevenLabs locales)
+      const localeMap: Record<string, string> = {
+        'spanish': 'es',
+        'french': 'fr',
+        'japanese': 'ja',
+        'tamil': 'ta',
+        'hindi': 'hi',
+        'italian': 'it',
+        'german': 'de',
+        'mandarin': 'zh',
+        'korean': 'ko',
+        'kannada': 'kn',
+        // Fallbacks for unsupported locales (use 'en' but prompt for accent)
+        'telugu': 'en',
+        'malayalam': 'en'
+      };
+
+      const targetLocale = localeMap[lang.toLowerCase()] || 'en';
+      const isIndianLanguage = ['telugu', 'tamil', 'malayalam', 'hindi'].includes(lang.toLowerCase());
+
+      // specialized accent instruction
+      let accentInstruction = `You are a native tutor of ${lang}. Speak with a strong, authentic ${lang} accent.`;
+      if (isIndianLanguage) {
+        accentInstruction += " Use a clear Indian English accent when speaking English. Do not use an American or British accent.";
+      }
+
+      // Construct a strong system instruction to force accent behavior
+      const systemInstruction = `[SYSTEM INSTRUCTION: ${accentInstruction} Adopt the persona fully using the specified accent.]`;
+
+      // Strategy: Inject a 'Fake Turn' to prime the conversation history
+      // This forces the agent to acknowledge the persona rule immediately
+      const primingMsg = isIndianLanguage
+        ? `[User]: Please speak with a strong, authentic Indian English accent. Do not use an American accent.\n[AI]: understood. I will speak with a clear Indian accent.`
+        : `[User]: Please speak with a native ${lang} accent.\n[AI]: Understood.`;
+
+      const historyText = messages.slice(-10).map(m => `[${m.type === 'user' ? 'User' : 'AI'}]: ${m.content}`).join('\n');
+      const finalHistory = `${systemInstruction}\n\n${primingMsg}\n\n${historyText}`;
+
+      console.log('DEBUG: Starting Session with config:', {
+        locale: targetLocale,
+        accent: lang,
+        hasSystemInstruction: !!systemInstruction,
+        historyLength: finalHistory.length,
+        previewHistory: finalHistory.substring(0, 200)
+      });
+
       await conversation.startSession({
         agentId: agentId,
         connectionType: 'websocket' as const,
@@ -218,8 +343,17 @@ function LearnPageContent() {
           personality: personality,
           level: level,
           topic: topic,
-          // Pass brief history context
-          history: messages.slice(-10).map(m => `${m.type === 'user' ? 'User' : 'AI'}: ${m.content}`).join('\n')
+          // Explicitly tell ElevenLabs the locale to use for STT/TTS
+          locale: targetLocale,
+          // Explicitly instruct agent to use native accent
+          accent: lang,
+          system_instruction: systemInstruction,
+
+          // Pass user learning patterns for personalized tutoring
+          userPatterns: JSON.stringify(userPatterns),
+          focusAreas: userPatterns.commonMistakes.join(', '),
+          // Inject fake turn + history
+          history: finalHistory
         }
       });
     } catch (error) {
@@ -242,11 +376,12 @@ function LearnPageContent() {
     } finally {
       // isEnding and isConnected will be handled by onDisconnect
       // Always try to save session to memory even if WebSocket fails
-      await saveSessionToMemory(messages, lang, personality);
+      await saveSessionToMemory(messages, lang, personality, confidenceScores);
     }
-  }, [conversation, messages, lang, personality, saveSessionToMemory, isEnding]);
+  }, [conversation, messages, lang, personality, saveSessionToMemory, isEnding, confidenceScores]);
 
-  const toggleMute = useCallback(() => {
+  // Toggle AI voice output (mutes/unmutes the tutor's voice)
+  const toggleAudioOutput = useCallback(() => {
     if (isMuted) {
       conversation.setVolume({ volume: 1 });
     } else {
@@ -341,15 +476,50 @@ function LearnPageContent() {
         }
       } catch (error) {
         console.error('Failed to send text message:', error);
-      } finally {
       }
     }
-
   };
 
+  const handleListen = (text: string) => {
+    if (typeof window === 'undefined') return;
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+
+    // Map of common learning languages to their native BCP-47 tags
+    const langMap: Record<string, string> = {
+      'spanish': 'es-ES',
+      'french': 'fr-FR',
+      'japanese': 'ja-JP',
+      'german': 'de-DE',
+      'mandarin': 'zh-CN',
+      'italian': 'it-IT',
+      'korean': 'ko-KR',
+      'tamil': 'ta-IN',
+      'telugu': 'te-IN',
+      'malayalam': 'ml-IN',
+      'hindi': 'hi-IN'
+    };
+
+    const targetLang = langMap[lang.toLowerCase()] || 'en-US';
+
+    // Attempt to find a voice matching the target language
+    const voices = window.speechSynthesis.getVoices();
+    const voice = voices.find(v => v.lang.startsWith(targetLang)) ||
+      voices.find(v => v.lang.includes(targetLang.split('-')[0]));
+
+    if (voice) {
+      utterance.voice = voice;
+      utterance.lang = voice.lang;
+    } else {
+      utterance.lang = targetLang;
+    }
+
+    utterance.rate = 0.9;
+    window.speechSynthesis.speak(utterance);
+  };
 
   return (
-    <div className="min-h-screen bg-dark-900 dark flex flex-col pt-20">
+    <div className="min-h-screen bg-transparent dark gradient-bg flex flex-col pt-20">
       <Header />
 
       {/* Main Content */}
@@ -357,10 +527,13 @@ function LearnPageContent() {
         {/* Chat Area */}
         <div className="flex-1 flex flex-col">
           {/* Topic Header */}
-          <div className="px-6 py-4 border-b border-white/10 flex items-center justify-between">
+          <div className="px-6 py-5 border-b border-white/5 bg-dark-900/50 backdrop-blur-md flex items-center justify-between sticky top-0 z-20">
             <div>
-              <h1 className="text-2xl font-bold text-white">{t('practice')}</h1>
-              <p className="text-gray-400">{t('topic')}: Immersive Daily Conversation</p>
+              <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-white/60">{t('practice')}</h1>
+              <p className="text-gray-400 text-sm flex items-center gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-primary-500 shadow-glow-sm" />
+                {t('topic')}: Immersive Daily Conversation
+              </p>
             </div>
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
@@ -389,9 +562,9 @@ function LearnPageContent() {
                     <p className="text-xs text-gray-500 mb-1">
                       {message.type === 'ai' ? 'MisSpoke AI' : 'You'}
                     </p>
-                    <div className={`rounded-2xl px-4 py-3 ${message.type === 'ai'
-                      ? 'bg-dark-800 text-white'
-                      : 'bg-gradient-to-r from-primary-500 to-primary-600 text-white'
+                    <div className={`rounded-2xl px-5 py-4 shadow-xl backdrop-blur-sm ${message.type === 'ai'
+                      ? 'glass-dark text-white border-l-4 border-l-primary-500'
+                      : 'bg-gradient-to-br from-primary-600 to-indigo-600 text-white shadow-glow-sm border border-white/10'
                       }`}>
                       <p>{message.content}</p>
                       {message.correction && (
@@ -401,7 +574,10 @@ function LearnPageContent() {
 
                     {message.type === 'ai' && (
                       <div className="flex gap-2 mt-2">
-                        <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-dark-800 text-gray-400 hover:text-white text-sm transition-colors">
+                        <button
+                          onClick={() => handleListen(message.content)}
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-dark-800 text-gray-400 hover:text-white text-sm transition-colors"
+                        >
                           <Volume2 className="w-4 h-4" />
                           {t('listen')}
                         </button>
@@ -434,49 +610,52 @@ function LearnPageContent() {
           </div>
 
           {/* Input Area */}
-          <div className="p-6 border-t border-white/10">
-            <div className="flex items-center gap-4">
-              <div className="flex-1 relative">
+          <div className="p-6 border-t border-white/5 bg-dark-950/50 backdrop-blur-xl">
+            <div className="flex items-center gap-4 max-w-4xl mx-auto">
+              {/* Voice Visualization (Small) */}
+              {isConnected && (
+                <div className="hidden md:flex gap-1 h-8 items-center px-4">
+                  {[1, 2, 3, 4, 5].map((i) => (
+                    <motion.div
+                      key={i}
+                      animate={{ height: conversation.isSpeaking ? [8, 20, 8] : 8 }}
+                      transition={{ duration: 0.5, repeat: Infinity, delay: i * 0.1 }}
+                      className="w-1 bg-primary-500 rounded-full"
+                    />
+                  ))}
+                </div>
+              )}
+
+              <div className="flex-1 relative group">
                 <input
                   type="text"
                   value={inputValue}
                   onChange={(e) => setInputValue(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+                  onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSendMessage()}
                   placeholder={t('placeholder')}
-                  className="w-full bg-dark-800 text-white rounded-xl px-4 py-3 pr-12 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  className="w-full bg-white/5 border border-white/10 text-white rounded-2xl px-6 py-4 pr-14 focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:bg-white/10 transition-all shadow-inner backdrop-blur-md"
                 />
                 <button
                   onClick={handleSendMessage}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-primary-400 transition-colors"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-xl bg-gradient-to-r from-primary-500 to-purple-500 text-white flex items-center justify-center hover:shadow-glow-sm transition-all hover:scale-105 active:scale-95"
                 >
-                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                    <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" />
-                  </svg>
+                  <Send className="w-5 h-5" />
                 </button>
               </div>
 
-              <button
-                onClick={isConnected ? endConversation : startConversation}
-                className={`flex items-center gap-2 px-6 py-3 rounded-xl font-medium transition-all ${isConnected
-                  ? 'bg-green-500/20 text-green-400 border border-green-500/30'
-                  : 'bg-green-500 text-white hover:bg-green-600'
-                  }`}
-              >
-                <Phone className="w-5 h-5" />
-                {isEnding || isSaving ? 'Saving...' : (isConnected ? t('connected') : t('join'))}
-              </button>
-
-              <button
-                onClick={isConnected ? endConversation : undefined}
-                disabled={!isConnected}
-                className={`flex items-center gap-2 px-6 py-3 rounded-xl font-medium transition-all ${isConnected
-                  ? 'bg-red-500/20 text-red-400 border border-red-500/30 hover:bg-red-500/30'
-                  : 'bg-dark-800 text-gray-500 cursor-not-allowed'
-                  }`}
-              >
-                <PhoneOff className="w-5 h-5" />
-                {isEnding || isSaving ? '...' : t('leave')}
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={isConnected ? endConversation : startConversation}
+                  className={`flex items-center gap-2 p-4 rounded-2xl font-bold transition-all ${isConnected
+                    ? 'bg-primary-500 text-white shadow-glow-md'
+                    : 'bg-green-500 text-white hover:bg-green-600 shadow-lg hover:shadow-green-500/20'
+                    }`}
+                  title={isConnected ? 'End Session' : 'Start Session'}
+                >
+                  {isConnected ? <PhoneOff className="w-6 h-6" /> : <Phone className="w-6 h-6" />}
+                  <span className="hidden sm:inline">{isEnding || isSaving ? '...' : (isConnected ? t('leave') : t('join'))}</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -546,7 +725,9 @@ function LearnPageContent() {
                     </div>
                   </motion.div>
                 ))}
+
               </AnimatePresence>
+              <div ref={messagesEndRef} />
             </div>
 
             {/* Voice Visualizer Area */}
@@ -588,18 +769,19 @@ function LearnPageContent() {
 
               <div className="text-center">
                 <p className="text-xl text-white font-semibold mb-6 tracking-wide">
-                  {conversation.isSpeaking ? `${personality} ${lang} tutor is speaking...` : "Listening carefully..."}
+                  {conversation.isSpeaking ? `${personality} ${lang} ${t('speaking_suffix')}` : t('listening')}
                 </p>
 
                 <div className="flex items-center justify-center gap-6">
                   <button
-                    onClick={toggleMute}
+                    onClick={toggleAudioOutput}
+                    title={isMuted ? 'Unmute AI Voice' : 'Mute AI Voice'}
                     className={`w-14 h-14 rounded-full flex items-center justify-center transition-all ${isMuted
-                      ? 'bg-red-500 text-white shadow-lg'
+                      ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/30'
                       : 'bg-dark-800 text-gray-300 hover:bg-dark-700 hover:text-white'
                       }`}
                   >
-                    {isMuted ? <MicOff className="w-6 h-6" /> : <Mic className="w-6 h-6" />}
+                    {isMuted ? <VolumeX className="w-6 h-6" /> : <Volume2 className="w-6 h-6" />}
                   </button>
                   <button
                     onClick={endConversation}
@@ -620,7 +802,8 @@ function LearnPageContent() {
       <motion.button
         whileHover={{ scale: 1.1 }}
         whileTap={{ scale: 0.95 }}
-        onClick={isConnected ? toggleMute : startConversation}
+        onClick={isConnected ? toggleAudioOutput : startConversation}
+        title={isConnected ? (isMuted ? 'Unmute AI' : 'Mute AI') : 'Start Voice Session'}
         className={`fixed bottom-24 right-8 w-16 h-16 rounded-full shadow-glow-lg flex items-center justify-center transition-colors z-[90] ${isConnected
           ? isMuted
             ? 'bg-red-500'
@@ -628,8 +811,8 @@ function LearnPageContent() {
           : 'bg-gradient-to-br from-primary-500 to-purple-500'
           }`}
       >
-        {isMuted ? (
-          <MicOff className="w-7 h-7 text-white" />
+        {isConnected ? (
+          isMuted ? <VolumeX className="w-7 h-7 text-white" /> : <Volume2 className="w-7 h-7 text-white" />
         ) : (
           <Mic className="w-7 h-7 text-white" />
         )}

@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Mic, Mail, Lock, ArrowRight, AlertCircle } from 'lucide-react';
 import { getUser, setLoggedInUser } from '@/lib/memory/sessionStore';
+import { verifyPassword } from '@/lib/utils/security';
 
 export default function LoginPage() {
     const [email, setEmail] = useState('');
@@ -21,7 +22,7 @@ export default function LoginPage() {
 
         try {
             const user = await getUser(email);
-            if (user && user.password === password) {
+            if (user && user.password && await verifyPassword(password, user.password)) {
                 setLoggedInUser(email);
                 router.push('/');
             } else {

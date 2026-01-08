@@ -1,12 +1,28 @@
 import { NextResponse } from 'next/server';
 import { generateContentSafe, extractJSON } from '@/lib/openrouter/client';
 
-
 export async function POST(request: Request) {
   let language, personality, topic, level;
 
   try {
-    const body = await request.json();
+    // Safely parse body
+    interface PromptRequestBody {
+      language?: string;
+      nativeLanguage?: string;
+      personality?: string;
+      topic?: string;
+      level?: string;
+      historyContext?: string;
+    }
+
+    let body: PromptRequestBody = {};
+    try {
+      const text = await request.text();
+      if (text) body = JSON.parse(text);
+    } catch {
+      console.warn('Empty or invalid body provided to prompt generation');
+    }
+
     language = body.language;
     const nativeLanguage = body.nativeLanguage || 'English';
     personality = body.personality;
@@ -27,25 +43,18 @@ export async function POST(request: Request) {
       3. User's Native Language: ${nativeLanguage} (Only for translations/explanations).
       4. Level: ${level || 'Beginner'}
       5. Current Topic: ${topic || 'Immersive Daily Conversation'}
+      ${historyContext ? `6. Previous Context: ${historyContext}` : ''}
+      7. INSTRUCTIONS:
+         - Output valid JSON only.
+         - NO Markdown.
+         - "systemPrompt": A detailed instruction set for the AI.
+         - "firstMessage": The opening greeting in ${language}.
+         - "accent": "native" (This is crucial).
 
-      INSTRUCTIONS for the AI Agent:
-      - Start the conversation AS IF YOU ALREADY KNOW the user's intent.
-      - Use ${language} for 90% of the interaction.
-      - Correct the user's mistakes gently but clearly.
-      - Keep responses concise (1-3 sentences).
-      - NEVER ask the user what language they want to learn or their level.
-      - DO NOT introduce yourself as a general bot. You are the specific ${personality} ${language} tutor.
-      - Ensure the "firstMessage" is in ${language}, reflects the ${personality} persona, and mentions the topic: ${topic}.
-
-      ${historyContext ? `---
-      PREVIOUS CONTEXT:
-      ${historyContext}
-      ---` : ''}
-
-      Output JSON format:
+      Output Format:
       {
-        "systemPrompt": "The full instruction for the AI tutor...",
-        "firstMessage": "The opening greeting in ${language}..."
+        "systemPrompt": "...",
+        "firstMessage": "..."
       }
     `;
 
@@ -58,11 +67,18 @@ export async function POST(request: Request) {
     // Clean up markdown code blocks if present
     const cleanText = extractJSON(text);
 
+    // Sanitize: AI often returns raw newlines in string values which break JSON.parse
+    const sanitizedText = cleanText.replace(/"([^"]*)"/g, (match: string, p1: string) => {
+      // Very basic sanitization of newlines inside strings
+      return '"' + p1.replace(/\n/g, '\\n') + '"';
+    });
+
     try {
-      const data = JSON.parse(cleanText);
+      const data = JSON.parse(sanitizedText);
       return NextResponse.json(data);
     } catch {
-      console.error('Failed to parse Gemini response:', text);
+      console.error('Failed to parse (even sanitized) response:', sanitizedText);
+      // Try one more time with simple repair or fallback
       return NextResponse.json({
         systemPrompt: `You are a ${personality} ${language} tutor. Teach ${topic}.`,
         firstMessage: `Hello! Let's learn ${language}.`
@@ -70,11 +86,7 @@ export async function POST(request: Request) {
     }
 
   } catch (error) {
-    console.error('Error generating prompt:', error);
-    if (error instanceof Error) {
-      console.error('Error message:', error.message);
-      console.error('Error stack:', error.stack);
-    }
+    console.error('Error in prompt route:', error);
     // Fallback to static prompt on error
     return NextResponse.json({
       systemPrompt: `You are a ${personality || 'friendly'} ${language || 'language'} tutor. Teach ${topic || 'conversation'}.`,

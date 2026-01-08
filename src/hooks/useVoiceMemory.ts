@@ -8,6 +8,7 @@ export interface ChatMessage {
   content: string;
   timestamp: Date;
   correction?: string;
+  confidence?: number;
 }
 
 export function useVoiceMemory() {
@@ -16,7 +17,8 @@ export function useVoiceMemory() {
   const endSession = useCallback(async (
     messages: ChatMessage[],
     language: string,
-    personalityId: string
+    personalityId: string,
+    confidenceScores: number[] = []
   ) => {
     if (messages.length === 0) return;
 
@@ -25,6 +27,11 @@ export function useVoiceMemory() {
       const sessionId = uuidv4();
       const startTime = messages[0].timestamp.getTime();
       const endTime = Date.now();
+
+      // Calculate average confidence
+      const avgConfidence = confidenceScores.length > 0
+        ? confidenceScores.reduce((a, b) => a + b, 0) / confidenceScores.length
+        : 0;
 
       // Convert messages to transcript for Gemini
       const transcript = messages
@@ -50,12 +57,16 @@ export function useVoiceMemory() {
           role: m.type,
           content: m.content,
           timestamp: m.timestamp.getTime(),
-          correction: m.correction
+          correction: m.correction,
+          confidence: m.confidence
         })),
+        confidenceScores,
         summary: analysis?.summary,
         mistakes: analysis?.mistakes || [],
         vocabulary: analysis?.vocabulary || [],
-        emotions: analysis?.emotions || []
+        emotions: analysis?.emotions || [],
+        avgConfidence: avgConfidence,
+        patterns: analysis?.patterns
       });
 
 
@@ -63,20 +74,30 @@ export function useVoiceMemory() {
       const profile = await getUserProfile();
       const lastPractice = new Date(profile?.lastPracticeDate || 0);
       const today = new Date();
-      const isConsecutiveDay =
-        today.getDate() === lastPractice.getDate() + 1 &&
-        today.getMonth() === lastPractice.getMonth() &&
-        today.getFullYear() === lastPractice.getFullYear();
 
-      const isSameDay =
-        today.getDate() === lastPractice.getDate() &&
-        today.getMonth() === lastPractice.getMonth() &&
-        today.getFullYear() === lastPractice.getFullYear();
+      // Calculate day difference using milliseconds for accuracy across month/year boundaries
+      const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+      const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
+      const lastPracticeStart = new Date(lastPractice.getFullYear(), lastPractice.getMonth(), lastPractice.getDate()).getTime();
+      const daysDiff = Math.floor((todayStart - lastPracticeStart) / ONE_DAY_MS);
+
+      const isConsecutiveDay = daysDiff === 1;
+      const isSameDay = daysDiff === 0;
+
+      const newTotalSessions = (profile?.totalSessions || 0) + 1;
+      const newAvgConfidence = profile?.avgConfidenceScore
+        ? (profile.avgConfidenceScore * (newTotalSessions - 1) + (avgConfidence || 0)) / newTotalSessions
+        : (avgConfidence || 0);
 
       await updateUserProfile({
-        totalSessions: (profile?.totalSessions || 0) + 1,
+        totalSessions: newTotalSessions,
         lastPracticeDate: Date.now(),
-        streakDays: isSameDay ? (profile?.streakDays || 0) : isConsecutiveDay ? (profile?.streakDays || 0) + 1 : 1
+        streakDays: isSameDay ? (profile?.streakDays || 0) : isConsecutiveDay ? (profile?.streakDays || 0) + 1 : 1,
+        avgConfidenceScore: newAvgConfidence,
+        learnedPatterns: {
+          strengths: Array.from(new Set([...(profile?.learnedPatterns?.strengths || []), ...(analysis?.patterns?.strengths || [])])),
+          weaknesses: Array.from(new Set([...(profile?.learnedPatterns?.weaknesses || []), ...(analysis?.patterns?.weaknesses || [])]))
+        }
       });
 
       console.log('Session saved successfully:', sessionId);

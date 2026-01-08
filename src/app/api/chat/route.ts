@@ -21,9 +21,16 @@ export async function POST(request: Request) {
 
       ### MANDATORY CONSTRAINTS ###
       1. NEVER ask "What language would you like to practice?" or "What is your level?". These are ALREADY SET to ${language} and ${level}.
-      2. If the user provides a short response (e.g., "Yes", "Hi", "Ok"), DO NOT pivot to generic help. Instead, dive deeper into ${topic} in ${language}.
-      3. Speak 95% in ${language}. Use the user's native language only for brief translations in brackets.
-      4. Embody the ${personality} personality in every sentence.
+      2. TOPIC FLEXIBILITY: The provided topic is a starter. If the user steers the conversation elsewhere, FOLLOW THEM. You can talk about ANYTHING (movies, life, tech, etc.).
+      3. TEACHING MODE: Correct mistakes gently and naturally within the flow.
+      4. LANGUAGE LOCK: Speak 95% in ${language}. NEVER switch to English/Native language entirely. Use it only for brief translations in brackets.
+      5. Embody the ${personality} personality in every sentence.
+
+      ### STYLE GUIDE ###
+      - Speak NATURALLY and COLLOQUIALLY. Avoid overly formal or textbook language.
+      - NO FILLER WORDS: Do NOT use "Um", "Uh", "So", or "Well..." that sound artificial.
+      - For Indian languages (Hindi, Tamil, Telugu, Malayalam), use common conversational forms (e.g., in Telugu use "Matladukundam" instead of "Sambashinchukundam").
+      - It is acceptable to use common English loanwords that are distinct parts of daily speech in that language (Code-mixing/Tanglish/Hinglish).
       
       ### EXAMPLE TRANSITION ###
       User: "Yes." or "Hi!"
@@ -32,14 +39,13 @@ export async function POST(request: Request) {
 
         // Map messages to OpenRouter format
         const openRouterMessages = [
-            { role: 'system', content: systemPrompt },
-            ...messages.map(m => ({
-                role: m.type === 'user' ? 'user' : 'assistant',
-                content: m.content
-            }))
+            { role: 'system' as const, content: systemPrompt },
+            ...messages.map(m => {
+                const role: 'user' | 'assistant' = m.type === 'user' ? 'user' : 'assistant';
+                return { role, content: m.content };
+            })
         ];
 
-        // @ts-expect-error - OpenRouter types mismatch with client
         const text = await generateWithMessagesSafe(openRouterMessages);
 
         if (!text) {

@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ArrowRight, Mic, Globe } from 'lucide-react';
+import { getLoggedInUser, updateUser } from '@/lib/memory/sessionStore';
 
 interface Language {
   id: string;
@@ -22,19 +23,28 @@ const nativeLanguages: Language[] = [
   { id: 'mandarin', name: 'Mandarin', nativeName: '普通话', flag: '🇨🇳' },
   { id: 'japanese', name: 'Japanese', nativeName: '日本語', flag: '🇯🇵' },
   { id: 'korean', name: 'Korean', nativeName: '한국어', flag: '🇰🇷' },
-  { id: 'portuguese', name: 'Portuguese', nativeName: 'Português', flag: '🇧🇷' },
   { id: 'italian', name: 'Italian', nativeName: 'Italiano', flag: '🇮🇹' },
   { id: 'russian', name: 'Russian', nativeName: 'Русский', flag: '🇷🇺' },
   { id: 'arabic', name: 'Arabic', nativeName: 'العربية', flag: '🇸🇦' },
+  { id: 'tamil', name: 'Tamil', nativeName: 'தமிழ்', flag: '🇮🇳' },
+  { id: 'telugu', name: 'Telugu', nativeName: 'తెలుగు', flag: '🇮🇳' },
+  { id: 'malayalam', name: 'Malayalam', nativeName: 'മലയാളം', flag: '🇮🇳' },
+  { id: 'kannada', name: 'Kannada', nativeName: 'ಕನ್ನಡ', flag: '🇮🇳' },
 ];
 
 export default function NativeLanguagePage() {
   const [selectedLanguage, setSelectedLanguage] = useState<Language | null>(null);
   const router = useRouter();
 
-  const handleContinue = () => {
+  const handleContinue = async () => {
     if (selectedLanguage) {
       localStorage.setItem('nativeLanguage', selectedLanguage.name);
+
+      const email = getLoggedInUser();
+      if (email) {
+        await updateUser(email, { nativeLanguage: selectedLanguage.name });
+      }
+
       router.push('/languages');
     }
   };
@@ -79,8 +89,8 @@ export default function NativeLanguagePage() {
                 transition={{ delay: index * 0.05 }}
                 onClick={() => setSelectedLanguage(language)}
                 className={`glass rounded-xl p-4 cursor-pointer transition-all flex items-center gap-4 ${selectedLanguage?.id === language.id
-                    ? 'card-selected ring-2 ring-primary-500 bg-primary-500/10'
-                    : 'hover:bg-white/5 hover:border-white/20'
+                  ? 'card-selected ring-2 ring-primary-500 bg-primary-500/10'
+                  : 'hover:bg-white/5 hover:border-white/20'
                   }`}
               >
                 <span className="text-3xl">{language.flag}</span>

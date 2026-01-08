@@ -1,98 +1,180 @@
 'use client';
 
+
 import { motion } from 'framer-motion';
 import Link from 'next/link';
-import { ArrowRight, Mic, Globe, Sparkles, Users, MessageCircle, Plane, Coffee, Briefcase, ShoppingBag, Utensils } from 'lucide-react';
+import { ArrowRight, Mic, Globe, Sparkles, Users, MessageCircle, Plane, Coffee, Briefcase, ShoppingBag, Utensils, Clock, Flame } from 'lucide-react';
 import Header from '@/components/Header';
 
 export default function LandingPage() {
+
+  const featuredLanguages = [
+    {
+      code: 'ES',
+      name: 'Español',
+      sub: 'Spanish',
+      level: 'Beginner Friendly',
+      levelColor: 'bg-green-500/20 text-green-400 border-green-500/30',
+      hours: '~600 hrs',
+      learners: '1.2M+',
+      popularity: 98,
+      feature: 'Real-world convo focus',
+      gradient: 'from-primary-500/10 to-transparent'
+    },
+    {
+      code: 'FR',
+      name: 'Français',
+      sub: 'French',
+      level: 'Intermediate',
+      levelColor: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
+      hours: '~750 hrs',
+      learners: '850k+',
+      popularity: 85,
+      feature: 'Culture & Literature',
+      gradient: 'from-primary-500/10 to-transparent'
+    },
+    {
+      code: 'JP',
+      name: '日本語',
+      sub: 'Japanese',
+      level: 'Advanced',
+      levelColor: 'bg-red-500/20 text-red-400 border-red-500/30',
+      hours: '~2200 hrs',
+      learners: '920k+',
+      popularity: 90,
+      feature: 'Kanji Writer',
+      gradient: 'from-primary-500/10 to-transparent'
+    },
+    {
+      code: 'DE',
+      name: 'Deutsch',
+      sub: 'German',
+      level: 'Intermediate',
+      levelColor: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
+      hours: '~750 hrs',
+      learners: '600k+',
+      popularity: 70,
+      feature: 'Technical Vocab',
+      gradient: 'from-primary-500/10 to-transparent'
+    }
+  ];
+
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-[#C8BCB3] dark:bg-dark-900 overflow-hidden font-sans selection:bg-black selection:text-white">
       <Header />
 
-      {/* Hero Section */}
-      <section className="pt-32 pb-20 px-6">
-        <div className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-12 items-center">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-          >
-            <h1 className="text-5xl lg:text-6xl font-bold text-dark-900 leading-tight mb-6">
-              Master a New Language.{' '}
-              <span className="gradient-text">Just by Speaking.</span>
-            </h1>
-            <p className="text-xl text-dark-500 mb-8 max-w-lg">
-              Talk to AI tutors who adapt to your voice, remember your progress, and evolve with every conversation. No memorization. Just real conversations.
-            </p>
-            <div className="flex flex-wrap gap-4 mb-8">
-              <Link href="/native-language" className="btn-primary flex items-center gap-2 text-lg px-8 py-4">
-                Try Free <ArrowRight className="w-5 h-5" />
-              </Link>
-              <button className="btn-secondary flex items-center gap-2 text-lg px-8 py-4">
-                Watch Demo
-              </button>
-            </div>
-            <div className="flex items-center gap-6 text-sm text-dark-500">
-              <div className="flex items-center gap-2">
-                <div className="flex -space-x-2">
-                  {[1, 2, 3, 4].map((index) => (
-                    <div key={index} className="w-8 h-8 rounded-full bg-gradient-to-br from-primary-400 to-purple-400 border-2 border-white" />
-                  ))}
-                </div>
-                <span className="font-semibold text-dark-900">10k+</span> Active Learners
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-yellow-500">★★★★★</span>
-                <span>4.9 Rating</span>
-              </div>
-            </div>
-          </motion.div>
+      {/* Hero Section - Matching Reference */}
+      <section className="relative pt-40 pb-32 px-6 flex flex-col items-center justify-center min-h-[90vh]">
+        {/* Decorative Floating Elements */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 1 }}
+          className="absolute top-32 left-[15%] text-4xl font-light text-dark-900/40 pointer-events-none"
+        >
+          +
+        </motion.div>
 
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.6, delay: 0.2 }}
-            className="relative"
-          >
-            <div className="relative w-full aspect-square max-w-lg mx-auto">
-              {/* Placeholder for 3D Robot - Replace with actual image */}
-              <div className="w-full h-full rounded-3xl bg-gradient-to-br from-primary-100 to-purple-100 flex items-center justify-center overflow-hidden">
-                <div className="text-center">
-                  <div className="w-32 h-32 mx-auto mb-4 rounded-full bg-gradient-to-br from-primary-500 to-purple-500 flex items-center justify-center">
-                    <Mic className="w-16 h-16 text-white" />
-                  </div>
-                  <p className="text-dark-500">AI Tutor</p>
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 1, delay: 0.5 }}
+          className="absolute top-48 right-[15%] text-5xl font-light text-dark-900/40 pointer-events-none"
+        >
+          +
+        </motion.div>
+
+        {/* Main Title */}
+        <motion.h1
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+          className="text-[12vw] md:text-[180px] leading-none font-medium tracking-tighter text-[#2a2a2a] dark:text-white text-center mb-12"
+        >
+          MisSpoke
+        </motion.h1>
+
+        {/* Floating Pill CTA */}
+        <motion.div
+          initial={{ scale: 0.9, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ delay: 0.4, duration: 0.5 }}
+          className="relative z-10"
+        >
+          <Link href="/native-language" className="group relative">
+            <div className="absolute inset-0 bg-gray-800 rounded-full blur-xl opacity-10 group-hover:opacity-20 transition-opacity" />
+            <div className="relative bg-[#A89B93] text-[#2a2a2a] px-12 py-4 rounded-full text-xl font-semibold shadow-2xl hover:scale-105 transition-transform border border-black/5 flex items-center gap-3">
+              Master a New Language, Just by Speaking!
+            </div>
+          </Link>
+        </motion.div>
+
+        {/* Language Cards Grid - Overlapping bottom */}
+        <motion.div
+          initial={{ y: 100, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.6, duration: 0.8 }}
+          className="mt-24 w-full max-w-[1400px] grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 px-4"
+        >
+          {featuredLanguages.map((lang, i) => (
+            <div key={lang.code} className="group relative bg-[#1e293b] rounded-3xl p-6 border border-white/10 hover:-translate-y-2 transition-transform duration-500 shadow-2xl">
+              {/* Background Gradient */}
+              <div className={`absolute inset-0 bg-gradient-to-br ${lang.gradient} rounded-3xl opacity-50`} />
+
+              {/* Header */}
+              <div className="relative flex justify-between items-start mb-8">
+                <div>
+                  <h3 className="text-2xl font-bold text-white mb-1">{lang.name}</h3>
+                  <p className="text-gray-400 text-sm">{lang.sub}</p>
+                </div>
+                <span className="text-4xl font-bold text-white/5 select-none absolute -top-2 right-0">{lang.code}</span>
+              </div>
+
+              {/* Badge */}
+              <div className={`relative inline-block px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border mb-6 ${lang.levelColor}`}>
+                {lang.level}
+              </div>
+
+              {/* Stats */}
+              <div className="relative grid grid-cols-2 gap-4 mb-6">
+                <div className="flex items-center gap-2 text-gray-400">
+                  <Clock className="w-4 h-4" />
+                  <span className="text-sm font-medium text-gray-200">{lang.hours}</span>
+                </div>
+                <div className="flex items-center gap-2 text-gray-400">
+                  <Users className="w-4 h-4" />
+                  <span className="text-sm font-medium text-gray-200">{lang.learners}</span>
                 </div>
               </div>
-              {/* Floating elements */}
-              <motion.div
-                animate={{ y: [0, -10, 0] }}
-                transition={{ duration: 3, repeat: Infinity }}
-                className="absolute -top-4 -right-4 bg-white rounded-2xl shadow-lg p-4"
-              >
-                <div className="flex items-center gap-2">
-                  <Globe className="w-5 h-5 text-primary-500" />
-                  <span className="font-semibold">8+ Languages</span>
+
+              {/* Popularity */}
+              <div className="relative mb-6">
+                <div className="flex justify-between text-xs mb-2">
+                  <span className="text-gray-400">Popularity</span>
+                  <span className="text-white font-bold">{lang.popularity}%</span>
                 </div>
-              </motion.div>
-              <motion.div
-                animate={{ y: [0, 10, 0] }}
-                transition={{ duration: 3, repeat: Infinity, delay: 1 }}
-                className="absolute -bottom-4 -left-4 bg-white rounded-2xl shadow-lg p-4"
-              >
-                <div className="flex items-center gap-2">
-                  <Sparkles className="w-5 h-5 text-purple-500" />
-                  <span className="font-semibold">AI Powered</span>
+                <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
+                  <motion.div
+                    initial={{ width: 0 }}
+                    whileInView={{ width: `${lang.popularity}%` }}
+                    transition={{ duration: 1, delay: 0.8 + i * 0.1 }}
+                    className="h-full bg-primary-500 rounded-full"
+                  />
                 </div>
-              </motion.div>
+              </div>
+
+              {/* Footer */}
+              <div className="relative pt-4 border-t border-white/5 flex items-center gap-2 text-primary-400 text-xs font-bold uppercase tracking-wide">
+                <Flame className="w-3 h-3" />
+                {lang.feature}
+              </div>
             </div>
-          </motion.div>
-        </div>
+          ))}
+        </motion.div>
       </section>
 
       {/* Why MisSpoke Works */}
-      <section id="features" className="py-20 bg-gray-50">
+      <section id="features" className="py-24 bg-white dark:bg-dark-800">
         <div className="max-w-7xl mx-auto px-6">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -287,7 +369,7 @@ export default function LandingPage() {
             </div>
             <span className="font-bold text-dark-900">MisSpoke</span>
           </div>
-          <p className="text-dark-500 text-sm">© 2024 MisSpoke. Built for the ElevenLabs Challenge.</p>
+          <p className="text-dark-500 text-sm">© 2026 MisSpoke. Built for the ElevenLabs Challenge.</p>
         </div>
       </footer>
     </div>

@@ -19,15 +19,16 @@ if (typeof window === 'undefined') { // Server-side only
 // Available models to try in order of preference
 // Optimized based on actual availability and performance
 const modelsToTry = [
-    'google/gemini-2.0-flash-exp:free',       // Free, fast, smart
-    'google/gemini-2.0-flash-thinking-exp',    // Valid ID (usually paid)
-    'google/gemini-flash-1.5-8b',             // Valid ID
-    'meta-llama/llama-3.1-8b-instruct',       // Standard ID (try without :free)
-    'mistralai/mistral-7b-instruct:free',     // Reliable fallback
-    'huggingfaceh4/zephyr-7b-beta:free',      // Fast fallback
-    'openai/gpt-4o-mini',                     // High quality backup (paid)
-    'anthropic/claude-3.5-sonnet',            // Premium backup (paid)
-]; interface OpenRouterMessage {
+    'google/gemini-2.0-flash-exp:free',       // Free, fast (Rate limits apply)
+    'meta-llama/llama-3.1-8b-instruct',       // Standard (Cheap/Free tier often available)
+    'mistralai/mistral-7b-instruct',          // Standard
+    'microsoft/phi-3-mini-128k-instruct:free',// High quality free model
+    'openchat/openchat-7:free',               // Free fallback
+    'huggingfaceh4/zephyr-7b-beta:free',      // Free fallback
+    'openai/gpt-4o-mini',                     // High quality backup
+];
+
+interface OpenRouterMessage {
     role: 'user' | 'assistant' | 'system';
     content: string;
 }
@@ -50,8 +51,37 @@ interface OpenRouterResponse {
  * Robustly extract JSON from AI response
  */
 export function extractJSON(text: string): string {
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    return jsonMatch ? jsonMatch[0] : text;
+    // 1. Remove markdown code blocks
+    let clean = text.replace(/```json\s*|\s*```/g, '');
+
+    // 2. Find the first '{' and the last '}'
+    const start = clean.indexOf('{');
+    const end = clean.lastIndexOf('}');
+
+    if (start !== -1 && end !== -1 && end > start) {
+        clean = clean.substring(start, end + 1);
+    }
+
+    return clean;
+}
+
+/**
+ * Attempt to parse JSON with simple repair logic for common AI errors
+ */
+export function tryParseJSON<T>(text: string): T | null {
+    try {
+        return JSON.parse(text);
+    } catch {
+        // Simple repair: remove trailing commas
+        try {
+            const repaired = text.replace(/,(\s*[}\]])/g, '$1');
+            return JSON.parse(repaired);
+        } catch (e) {
+            console.warn('JSON Parse Error:', e);
+            console.warn('Failed Text:', text.substring(0, 100));
+            return null;
+        }
+    }
 }
 
 /**
@@ -94,6 +124,7 @@ export async function generateContentSafe(prompt: string): Promise<string | null
                 }
 
                 console.warn(`❌ Model ${modelName} failed (${response.status}):`, errorData);
+                console.warn('Raw error text:', errorText.substring(0, 200)); // Log raw text for debugging HTML errors
 
                 // If rate limited, try next model immediately
                 if (response.status === 429) {
@@ -160,9 +191,9 @@ export async function generateWithMessagesSafe(
                 console.log(`✅ Success with model: ${data.model}`);
                 return content;
             }
-        } catch {
-
-            throw new Error("OpenRouter failed");
+        } catch (error) {
+            console.warn(`Failed with model ${modelName}:`, error);
+            continue;
         }
 
     }
@@ -182,6 +213,7 @@ export async function generateSessionSummary(transcript: string) {
     2. Main grammatical mistakes made by the user
     3. New vocabulary used correctly
     4. The user's emotional state (confident, hesitant, frustrated, etc.)
+    5. Specific speech patterns (strengths and weaknesses)
 
     Transcript:
     ${transcript}
@@ -191,7 +223,14 @@ export async function generateSessionSummary(transcript: string) {
       "summary": "Brief 1-sentence summary",
       "mistakes": ["mistake 1", "mistake 2"],
       "vocabulary": ["word 1", "word 2"],
-      "emotions": ["emotion 1", "emotion 2"]
+      "emotions": ["emotion 1", "emotion 2"],
+      "patterns": {
+        "strengths": ["pattern 1", "pattern 2"],
+        "weaknesses": ["pattern 1", "pattern 2"],
+        "pronunciation": ["issue 1"],
+        "grammar": ["issue 1"],
+        "vocabulary": ["issue 1"]
+      }
     }
   `;
 
