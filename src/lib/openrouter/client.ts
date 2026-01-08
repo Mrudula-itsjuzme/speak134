@@ -6,15 +6,8 @@
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY || process.env.NEXT_PUBLIC_OPENROUTER_API_KEY;
 const OPENROUTER_BASE_URL = 'https://openrouter.ai/api/v1';
 
-// Diagnostic logging
-if (typeof window === 'undefined') { // Server-side only
-    if (!OPENROUTER_API_KEY) {
-        console.error('❌ CRITICAL: OPENROUTER_API_KEY is not set! Text chat will not work.');
-        console.log('📝 Add OPENROUTER_API_KEY to your .env.local file and restart the server.');
-    } else {
-        console.log('✅ OpenRouter API key detected (length:', OPENROUTER_API_KEY.length, ')');
-    }
-}
+// Diagnostic logging removed to prevent build failures during static generation.
+// The key is checked inside individual functions at runtime.
 
 // Available models to try in order of preference
 // Optimized based on actual availability and performance
