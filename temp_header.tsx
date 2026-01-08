@@ -15,7 +15,7 @@ export default function Header() {
 
     useEffect(() => {
         const fetchUser = async () => {
-            const email = getLoggedInUser();
+            const email = await getLoggedInUser();
             if (email) {
                 const userData = await getUser(email);
                 if (userData) {
