@@ -265,9 +265,7 @@ Screenshots can be added here once the UI is finalized.
 
 ## Author
 
-Built by **Pedamallu Sai Mrudula**.
-
-GitHub: [@Mrudula-itsjuzme](https://github.com/Mrudula-itsjuzme)
+Built by **Pedamallu Sai Mrudula** and **Meghana Kotharu**.
 
 ---
 
