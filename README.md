@@ -1,26 +1,39 @@
 # MisSpoke
 
-AI-powered voice-first language learning platform built with Next.js, ElevenLabs, OpenRouter, and Supabase.
+**MisSpoke** is an AI-powered, voice-first language learning platform that helps users practice real conversations with adaptive AI tutors. It combines live voice interaction, text chat, tutor personalities, translations, session memory, and learning analytics into one conversational learning experience.
 
-MisSpoke helps users practice real conversations in different languages using AI tutors with customizable personalities. Users can interact through both text and voice while the system tracks learning progress, vocabulary, mistakes, confidence, and conversation history.
+Built for the **ElevenLabs Challenge**, MisSpoke focuses on what most language apps avoid: actually speaking.
 
 ---
 
-# Features
+## Why MisSpoke?
 
-## Voice-Based AI Conversations
-- Real-time conversational AI using ElevenLabs
-- Natural speaking practice with AI tutors
-- Microphone support for live interaction
-- AI-generated voice responses
+Most language learning tools are built around flashcards, streaks, and passive memorization. MisSpoke is built around conversation.
 
-## Text Chat Support
-- Chat with AI tutors directly through text
-- Context-aware conversational responses
-- Dynamic language tutoring prompts
+The goal is simple: help learners become confident speakers by letting them practice realistic scenarios with AI tutors that remember their progress, adapt to their level, and respond in a natural teaching style.
 
-## Tutor Personalities
-Choose different AI tutor personalities:
+---
+
+## Core Features
+
+### Voice-first AI tutoring
+
+- Real-time voice conversations using ElevenLabs Conversational AI
+- Microphone-based speaking practice
+- AI tutor voice responses
+- Language/accent-aware session configuration
+- Voice overlay with live conversation UI
+
+### Text-based practice
+
+- Chat with the AI tutor when voice mode is not active
+- Context-aware responses using previous messages
+- Dynamic tutor behavior based on language, topic, level, and personality
+
+### Tutor personalities
+
+Users can choose different tutor styles, including:
+
 - Cheerful
 - Calm
 - Motivating
@@ -30,156 +43,143 @@ Choose different AI tutor personalities:
 - Empathetic
 - Energetic
 
-Each personality changes the teaching style, tone, and interaction flow.
+Each personality changes how the tutor explains, corrects, motivates, and responds.
 
-## Multi-Language Learning
+### Multi-language learning flow
+
 - Select native language
 - Select target learning language
-- Multilingual UI translation support
+- Practice languages such as Spanish, French, Japanese, German, Italian, Korean, Mandarin, Hindi, Tamil, Telugu, Malayalam, and Kannada
+- Translate tutor messages into the learner's native language
+- Dynamic UI translation support
 
-## Session Memory & Analytics
-The platform stores:
+### Session memory and learning analytics
+
+MisSpoke tracks useful learning signals across practice sessions:
+
 - Conversation history
+- Common mistakes
 - Vocabulary learned
-- Mistakes and corrections
+- Corrections
 - Confidence scores
+- Strengths and weaknesses
 - Session summaries
-- Learning patterns
+- Recent practice patterns
 
-## Authentication
-- Login / Signup using Supabase
-- Persistent authentication sessions
+### Authentication
 
-## Personalized Learning
-- Dynamic prompt generation
-- User-level adaptation
-- Conversation history awareness
-- Focus-area based tutoring
+- Supabase-based login and signup
+- Persistent authenticated sessions
+- Profile-aware learning flow
 
 ---
 
-# Tech Stack
+## Tech Stack
 
-## Frontend
+### Frontend
+
 - Next.js 15
 - React 19
 - TypeScript
 - Tailwind CSS
 - Framer Motion
+- Lucide React icons
 
-## AI & APIs
+### AI and voice
+
 - ElevenLabs Conversational AI
 - OpenRouter API
-- Google Generative AI SDK
+- Multi-model fallback logic
+- Google Generative AI SDK dependency included for AI-related workflows
 
-## Backend & Storage
-- Next.js API Routes
-- Supabase Authentication
-- IndexedDB (`idb`)
+### Backend and storage
+
+- Next.js API routes
+- Supabase authentication
+- IndexedDB via `idb`
+- Local session persistence
 
 ---
 
-# Project Structure
+## Project Structure
 
 ```bash
 src/
-│
 ├── app/
 │   ├── api/
-│   │   ├── chat/
-│   │   ├── prompt/
-│   │   ├── summary/
-│   │   ├── translate/
-│   │   └── translate-ui/
-│   │
-│   ├── learn/
-│   ├── login/
-│   ├── signup/
-│   ├── profile/
-│   ├── personalities/
-│   ├── languages/
-│   ├── native-language/
-│   ├── diagnostic/
-│   └── community/
-│
-├── components/
-│
-├── constants/
-│
-├── hooks/
-│   └── useVoiceMemory.ts
-│
+│   │   ├── chat/           # Text tutor responses
+│   │   ├── prompt/         # Dynamic tutor prompt generation
+│   │   ├── summary/        # Session summaries and analysis
+│   │   ├── translate/      # Message translation
+│   │   └── translate-ui/   # UI translation
+│   ├── learn/              # Main voice/text practice page
+│   ├── login/              # Login page
+│   ├── signup/             # Signup page
+│   ├── profile/            # User profile
+│   ├── personalities/      # Tutor personality selection
+│   ├── languages/          # Target language selection
+│   ├── native-language/    # Native language selection
+│   ├── diagnostic/         # Diagnostic flow
+│   └── community/          # Community page
+├── components/             # Shared UI components
+├── constants/              # App constants
+├── hooks/                  # Custom React hooks
 ├── lib/
-│   ├── memory/
-│   ├── openrouter/
-│   └── supabase/
-│
-└── styles/
+│   ├── memory/             # Local learning memory/session store
+│   ├── openrouter/         # OpenRouter client and fallback logic
+│   └── supabase/           # Supabase client
+└── styles/                 # Global styling
 ```
 
 ---
 
-# How It Works
+## How It Works
 
-1. User selects:
-   - Native language
-   - Target language
-   - Tutor personality
-
-2. The app generates a dynamic AI tutor prompt.
-
-3. User starts:
-   - A voice conversation
-   - OR a text conversation
-
-4. AI tutor responds using:
-   - OpenRouter LLMs
-   - ElevenLabs voice synthesis
-
-5. Session data is analyzed and stored locally.
+1. The learner chooses a native language, target language, and tutor personality.
+2. MisSpoke generates a tutor prompt based on the selected language, level, topic, and personality.
+3. The learner starts either a voice session or a text chat.
+4. The AI tutor responds conversationally, corrects mistakes, and adapts to the session context.
+5. After practice, the app stores learning signals such as vocabulary, mistakes, confidence scores, and session history.
 
 ---
 
-# Installation
+## Getting Started
 
-## Clone the Repository
+### 1. Clone the repository
 
 ```bash
 git clone https://github.com/Mrudula-itsjuzme/speak134.git
 cd speak134
 ```
 
-## Install Dependencies
+### 2. Install dependencies
 
 ```bash
 npm install
 ```
 
----
+### 3. Configure environment variables
 
-# Environment Variables
-
-Create a `.env.local` file in the root directory.
+Create a `.env.local` file in the project root.
 
 ```env
-NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 
 OPENROUTER_API_KEY=your_openrouter_api_key
+NEXT_PUBLIC_SITE_URL=http://localhost:3000
 
-NEXT_PUBLIC_ELEVENLABS_AGENT_ID=your_agent_id
+NEXT_PUBLIC_ELEVENLABS_AGENT_ID=your_elevenlabs_agent_id
 ELEVENLABS_API_KEY=your_elevenlabs_api_key
 ```
 
----
-
-# Run the Development Server
+### 4. Run the development server
 
 ```bash
 npm run dev
 ```
 
-Open:
+Open the app at:
 
 ```bash
 http://localhost:3000
@@ -187,114 +187,90 @@ http://localhost:3000
 
 ---
 
-# Available Scripts
+## Available Scripts
 
-```bash
-npm run dev
-```
-Starts the development server.
-
-```bash
-npm run build
-```
-Builds the application for production.
-
-```bash
-npm run start
-```
-Runs the production build.
-
-```bash
-npm run lint
-```
-Runs ESLint checks.
+| Command | Description |
+|---|---|
+| `npm run dev` | Start the local development server with Turbopack |
+| `npm run build` | Build the production app |
+| `npm run start` | Run the production build |
+| `npm run lint` | Run lint checks |
 
 ---
 
-# API Routes
+## API Routes
 
 | Route | Purpose |
 |---|---|
-| `/api/chat` | AI text conversation |
-| `/api/prompt` | Dynamic tutor prompt generation |
-| `/api/summary` | Session analysis and summaries |
-| `/api/translate` | Message translation |
-| `/api/translate-ui` | UI text translation |
+| `/api/chat` | Generates text-based tutor responses |
+| `/api/prompt` | Creates dynamic tutor prompts |
+| `/api/summary` | Generates learning/session summaries |
+| `/api/translate` | Translates tutor messages |
+| `/api/translate-ui` | Translates UI labels |
 
 ---
 
-# Current Features Implemented
+## Current Status
 
-- AI voice conversations
-- Text-based AI chat
+Implemented:
+
+- Voice-based AI tutor sessions
+- Text chat fallback
+- Dynamic tutor prompts
 - Multiple tutor personalities
-- Dynamic prompt generation
+- Native language and target language selection
 - Translation support
 - Session memory
-- Learning analytics
 - IndexedDB persistence
 - Supabase authentication
-- Conversation history tracking
 - Confidence score tracking
+- Conversation history tracking
+- Learning pattern extraction
 
----
-
-# Future Improvements
+Planned improvements:
 
 - Cloud sync for session history
+- More detailed pronunciation scoring
 - Better long-term memory
-- Pronunciation analysis
-- Real-time correction scoring
-- Mobile responsiveness improvements
-- Gamification system
+- Gamified progress system
+- Streaks and achievements
 - Community learning features
-- Leaderboards and streaks
-- Advanced adaptive tutoring
+- Leaderboards
+- More polished mobile experience
+- Stronger dashboard analytics
 
 ---
 
-# Challenges Solved
+## Screenshots
 
-- Real-time voice AI integration
-- Multi-model LLM fallback system
-- Dynamic conversational tutoring prompts
-- Local session persistence
-- AI memory architecture
-- Voice + text hybrid learning flow
-
----
-
-# Screenshots
-
-Add screenshots here later.
-
-Example:
+Screenshots can be added here once the UI is finalized.
 
 ```markdown
 ![Home Page](./screenshots/home.png)
-![Voice Chat](./screenshots/voice-chat.png)
+![Voice Practice](./screenshots/voice-practice.png)
+![Learning Dashboard](./screenshots/dashboard.png)
 ```
 
 ---
 
-# Authors
+## Notes for Running Locally
 
-Developed by the MisSpoke Team.
-
-GitHub:
-- https://github.com/Mrudula-itsjuzme
-
----
-
-# License
-
-This project is currently intended for educational and experimental purposes.
+- Browser microphone permission is required for voice practice.
+- ElevenLabs voice sessions require a valid agent ID.
+- OpenRouter is used for AI tutor responses and analysis.
+- Supabase is used for authentication.
+- Some learning memory is stored locally through IndexedDB.
 
 ---
 
-# Notes
+## Author
 
-- Requires valid API keys for ElevenLabs and OpenRouter.
-- Some features depend on browser microphone permissions.
-- Session data is currently stored locally using IndexedDB.
-- Supabase integration is used for authentication.
+Built by **Pedamallu Sai Mrudula**.
+
+GitHub: [@Mrudula-itsjuzme](https://github.com/Mrudula-itsjuzme)
+
+---
+
+## License
+
+This project is currently intended for educational, experimental, and hackathon-style use.
