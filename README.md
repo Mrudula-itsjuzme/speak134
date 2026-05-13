@@ -6,6 +6,19 @@ Built for the ElevenLabs Challenge, the project focuses on speaking practice, tu
 
 ---
 
+## Project links and evidence
+
+| Item | Link / Note |
+|---|---|
+| Repository | https://github.com/Mrudula-itsjuzme/speak134 |
+| Paper / reference | Hackathon/product build; no paper attached |
+| Demo video | Not uploaded yet |
+| Deployment | Add hosted app link here after deployment |
+| Dataset note | Uses user-generated practice sessions; authentication/session state through Supabase and local IndexedDB |
+| Result screenshots | Screenshots section is reserved below; add `screenshots/` images once UI is finalized |
+
+---
+
 ## Why MisSpoke?
 
 Most language-learning apps focus on flashcards, streaks, and passive memorization. MisSpoke is built around actual conversation.
